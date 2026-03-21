@@ -6,7 +6,7 @@ sui provides a reactive state system that maps to SwiftUI's state management.
 
 | Concept | Haxe | SwiftUI | Purpose |
 |---------|------|---------|---------|
-| `State<T>` | `new State<Int>(0, "count")` | `@State var count = 0` | View-local mutable state |
+| `@:state` | `@:state var count:Int = 0` | `@State var count = 0` | View-local mutable state |
 | `StateAction` | `StateAction.Increment("count", 1)` | `count += 1` | Declarative state mutations |
 | `Binding` | `Binding.fromState(state)` | `@Binding var value` | Two-way reference to parent state |
 | `Observable` | `extends Observable` | `@Observable class` | Shared data models |
@@ -14,31 +14,46 @@ sui provides a reactive state system that maps to SwiftUI's state management.
 
 ## How It Works
 
-1. You declare `State<T>` variables in your App class
+1. Declare `@:state` fields in your App class
 2. The framework generates matching `@State var` properties in Swift
-3. Mutations happen through `StateAction` (in Swift) or `State.set()` (in Haxe via bridge)
+3. Mutations happen through `StateAction` (in Swift) or `state.value = x` (in Haxe via bridge)
 4. SwiftUI automatically re-renders when state changes
 
 ## Quick Example
 
 ```haxe
 class CounterApp extends App {
-    var count:State<Int>;
+    @:state var count:Int = 0;
 
     public function new() {
         super();
         appName = "Counter";
         bundleIdentifier = "com.example.counter";
-        count = new State<Int>(0, "count");
     }
 
     override function body():View {
         return new VStack([
             Text.withState("Count: {count}")
                 .font(FontStyle.Title),
-            new Button("+1", null, StateAction.Increment("count", 1))
+            new Button("+1", null, StateAction.Increment("count", 1)),
+            new Button("Reset", () -> count.value = 0)
         ]);
     }
+}
+```
+
+The `@:state` metadata automatically creates a `State<Int>` field named `"count"`. You can read and write it with `count.value`, and the change flows to SwiftUI.
+
+### Explicit State (alternative)
+
+You can also use `State<T>` directly for more control:
+
+```haxe
+var count:State<Int>;
+
+public function new() {
+    super();
+    count = new State<Int>(0, "count");
 }
 ```
 

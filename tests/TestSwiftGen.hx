@@ -12,13 +12,12 @@ import sui.state.StateAction;
 class TestSwiftGen extends App {
     static function main() {}
 
-    var count:State<Int>;
+    @:state var count:Int = 0;
 
     public function new() {
         super();
         appName = "TestApp";
         bundleIdentifier = "com.test.app";
-        count = new State<Int>(0, "count");
     }
 
     override function body():View {

@@ -2,8 +2,25 @@ package sui.state;
 
 /**
     Represents a piece of reactive state in a view.
-    When the C++ bridge is linked, `set()` automatically notifies Swift
+    When the C++ bridge is linked, setting `value` automatically notifies Swift
     to update the corresponding SwiftUI state.
+
+    Usage with @:state (recommended):
+    ```haxe
+    @:state var count:Int = 0;
+
+    // In closures:
+    count.value = 5;        // write (notifies Swift)
+    trace(count.value);     // read
+    ```
+
+    Usage with explicit State<T>:
+    ```haxe
+    var count:State<Int>;
+    count = new State<Int>(0, "count");
+    count.set(5);           // write
+    count.get();            // read
+    ```
 **/
 #if cpp
 @:cppFileCode('
@@ -21,35 +38,44 @@ void _hxsui_notify_swift(const char* key, const char* value) {
 ')
 #end
 class State<T> {
-    public var value:T;
+    /** Read or write the state value. Writing triggers Swift notification. **/
+    public var value(get, set):T;
+
     public var name:String;
 
+    private var _value:T;
     private var onChange:Null<T->Void>;
 
     public function new(initialValue:T, ?name:String) {
-        this.value = initialValue;
+        this._value = initialValue;
         this.name = name != null ? name : "";
     }
 
-    public function get():T {
-        return value;
+    function get_value():T {
+        return _value;
     }
 
-    /**
-        Set a new value.
-        If the C++ bridge is linked, this automatically updates SwiftUI state.
-    **/
-    public function set(newValue:T):Void {
-        value = newValue;
+    function set_value(newValue:T):T {
+        _value = newValue;
         if (onChange != null) {
             onChange(newValue);
         }
-        // Notify Swift via C bridge (weak symbol — no-op if bridge not linked)
         #if cpp
         var k = name;
         var v = Std.string(newValue);
         untyped __cpp__('_hxsui_notify_swift({0}.utf8_str(), {1}.utf8_str())', k, v);
         #end
+        return newValue;
+    }
+
+    /** Read the current value. Alias for `value`. **/
+    public function get():T {
+        return _value;
+    }
+
+    /** Set a new value and notify Swift. Alias for `value = x`. **/
+    public function set(newValue:T):Void {
+        value = newValue;
     }
 
     public function onValueChanged(callback:T->Void):Void {
