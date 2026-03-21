@@ -14,13 +14,12 @@ import sui.state.StateAction;
 class FetchApp extends App {
     static function main() {}
 
-    var result:State<String>;
+    @:state var result:String = "Press a button to fetch data";
 
     public function new() {
         super();
         appName = "AsyncFetch";
         bundleIdentifier = "com.sui.asyncfetch";
-        result = new State<String>("Press a button to fetch data", "result");
     }
 
     @:bridge
@@ -86,8 +85,8 @@ public static function fetchUrl(url:String):String {
 
 // Call via closure — handle loading state yourself
 new Button("Fetch example.com", () -> {
-    result.set("Loading...");
-    result.set(fetchUrl("https://example.com"));
+    result.value = "Loading...";
+    result.value = fetchUrl("https://example.com");
 })
 ```
 
@@ -107,10 +106,10 @@ This generates Swift code that:
 
 ```haxe
 new Button("Fetch example.com", () -> {
-    result.set("Loading...");
+    result.value = "Loading...";
     var http = new haxe.Http("https://example.com");
-    http.onData = (d) -> result.set(d.length > 500 ? d.substr(0, 500) + "..." : d);
-    http.onError = (e) -> result.set("Error: " + e);
+    http.onData = (d) -> result.value = d.length > 500 ? d.substr(0, 500) + "..." : d;
+    http.onError = (e) -> result.value = "Error: " + e;
     http.request(false);
 })
 ```

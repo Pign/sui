@@ -154,9 +154,9 @@ new VStack([...])
     .onDisappear(() -> trace("View disappeared"))
     .task(() -> {
         // Runs when view appears, good for loading data
-        myState.set("Loading...");
+        myState.value = "Loading...";
         var http = new haxe.Http("https://example.com");
-        http.onData = (d) -> myState.set(d);
+        http.onData = (d) -> myState.value = d;
         http.request(false);
     })
 ```

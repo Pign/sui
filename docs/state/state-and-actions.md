@@ -1,58 +1,46 @@
 # State & Actions
 
-## State\<T\>
+## @:state
 
-`State<T>` declares a reactive state variable. It generates a `@State var` in Swift.
+`@:state` declares a reactive state variable. It generates a `@State var` in Swift.
 
 ```haxe
-var count:State<Int>;
-var name:State<String>;
-var items:State<Array<TodoItem>>;
-
-public function new() {
-    super();
-    count = new State<Int>(0, "count");
-    name = new State<String>("", "name");
-    items = new State<Array<TodoItem>>([], "items");
-}
+@:state var count:Int = 0;
+@:state var name:String = "";
+@:state var items:Array<TodoItem> = [];
 ```
+
+No constructor initialization needed &mdash; the default value is specified inline.
 
 ### Supported Types
 
-`State<T>` validates the type parameter at compile time. Only the following types are allowed:
+`@:state` validates the type at compile time. Only the following types are allowed:
 
 | Type | Example | Valid? |
 |------|---------|--------|
-| `Int` | `State<Int>` | Yes |
-| `Float` | `State<Float>` | Yes |
-| `Bool` | `State<Bool>` | Yes |
-| `String` | `State<String>` | Yes |
-| `Array<BasicType>` | `State<Array<String>>` | Yes |
-| `Array<Observable>` | `State<Array<TodoItem>>` | Yes, if `TodoItem` extends `Observable` |
-| Other classes | `State<MyClass>` | Only if `MyClass` extends `Observable` |
+| `Int` | `@:state var x:Int = 0` | Yes |
+| `Float` | `@:state var x:Float = 0.0` | Yes |
+| `Bool` | `@:state var x:Bool = false` | Yes |
+| `String` | `@:state var x:String = ""` | Yes |
+| `Array<BasicType>` | `@:state var x:Array<String> = []` | Yes |
+| `Array<Observable>` | `@:state var x:Array<TodoItem> = []` | Yes, if `TodoItem` extends `Observable` |
+| Other classes | `@:state var x:MyClass` | Only if `MyClass` extends `Observable` |
 
-Using an unsupported type (e.g. `State<Array<SomeClass>>` where `SomeClass` doesn't extend `Observable`) produces a compile-time error:
+Using an unsupported type (e.g. `@:state var x:Array<SomeClass>` where `SomeClass` doesn't extend `Observable`) produces a compile-time error:
 
 ```
-[SwiftGen] State<SomeClass> is not supported. Use a basic type (Int, Float, Bool, String),
+[SwiftGen] State type SomeClass is not supported. Use a basic type (Int, Float, Bool, String),
 an array of basic types, or a class extending Observable.
 ```
 
-**Constructor:**
+**Access:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `initialValue` | `T` | Starting value |
-| `name` | `String` | Variable name in generated Swift |
-
-**Methods:**
-
-| Method | Description |
+| Syntax | Description |
 |--------|-------------|
-| `.get()` | Read the current value (Haxe side) |
-| `.set(newValue)` | Update the value and notify SwiftUI |
+| `.value` | Read the current value (Haxe side) |
+| `.value = newValue` | Update the value and notify SwiftUI |
 
-The `name` parameter is critical &mdash; it must match what you use in `StateAction`, `Text.withState`, and binding references.
+The variable name is used directly in `StateAction`, `Text.withState`, and binding references.
 
 ## StateAction
 
@@ -115,13 +103,12 @@ Text.withState("{todos[i].title}")      // → Text("\(todos[i].title)")
 
 ```haxe
 class CounterApp extends App {
-    var count:State<Int>;
+    @:state var count:Int = 0;
 
     public function new() {
         super();
         appName = "Counter";
         bundleIdentifier = "com.example.counter";
-        count = new State<Int>(0, "count");
     }
 
     override function body():View {
@@ -130,9 +117,9 @@ class CounterApp extends App {
                 .font(FontStyle.Title)
                 .padding(),
             new HStack(null, 20, [
-                new Button("-", () -> count.set(count.get() - 1),
+                new Button("-", () -> count.value = count.value - 1,
                     StateAction.Decrement("count", 1)),
-                new Button("+", () -> count.set(count.get() + 1),
+                new Button("+", () -> count.value = count.value + 1,
                     StateAction.Increment("count", 1))
             ])
         ]);

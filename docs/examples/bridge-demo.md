@@ -1,6 +1,6 @@
 # Bridge Demo
 
-Demonstrates the explicit `@:bridge` annotation for exposing named Haxe functions to Swift. Note that most bridging (closures, `State.set()`, lifecycle handlers) is automatic and needs no annotation &mdash; `@:bridge` is only for named function exports.
+Demonstrates the explicit `@:bridge` annotation for exposing named Haxe functions to Swift. Note that most bridging (closures, `@:state` updates, lifecycle handlers) is automatic and needs no annotation &mdash; `@:bridge` is only for named function exports.
 
 ## Full Source
 
@@ -14,13 +14,12 @@ import sui.state.StateAction;
 class BridgeApp extends App {
     static function main() {}
 
-    var result:State<String>;
+    @:state var result:String = "Press a button!";
 
     public function new() {
         super();
         appName = "BridgeDemo";
         bundleIdentifier = "com.sui.bridgedemo";
-        result = new State<String>("Press a button!", "result");
     }
 
     @:bridge
@@ -72,7 +71,7 @@ public static function greet(name:String):String {
 }
 
 new Button("Greet from Haxe", () -> {
-    result.set(greet("World"));
+    result.value = greet("World");
 })
 ```
 
@@ -88,7 +87,7 @@ new Button("Greet from Haxe", null,
 **Without @:bridge** &mdash; use a closure instead:
 
 ```haxe
-new Button("Greet from Haxe", () -> result.set(greet("World")))
+new Button("Greet from Haxe", () -> result.value = greet("World"))
 ```
 
 Both produce the same result. The `@:bridge` version is useful when you need the return value in a `CustomSwift` expression or want to compose calls in Swift code.
@@ -108,7 +107,7 @@ new Button("Fibonacci(20)", null,
 
 // Without @:bridge:
 new Button("Fibonacci(20)", () -> {
-    result.set("fib(20) = " + fibonacci(20));
+    result.value = "fib(20) = " + fibonacci(20);
 })
 ```
 

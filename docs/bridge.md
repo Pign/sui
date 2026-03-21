@@ -1,6 +1,6 @@
 # Bridge
 
-sui includes a **transparent bridge** between Swift and Haxe/C++. Most of the time, you just write normal Haxe code &mdash; closures, `State.set()`, lifecycle handlers &mdash; and the framework handles the bridging automatically. No annotations required.
+sui includes a **transparent bridge** between Swift and Haxe/C++. Most of the time, you just write normal Haxe code &mdash; closures, state updates, lifecycle handlers &mdash; and the framework handles the bridging automatically. No annotations required.
 
 ## Transparent Bridge (Automatic)
 
@@ -12,18 +12,18 @@ Pass any Haxe function or closure to a Button. It runs via the bridge automatica
 
 ```haxe
 new Button("Say Hello", () -> {
-    myState.set("Hello from Haxe! Time: " + Date.now().toString());
+    myState.value = "Hello from Haxe! Time: " + Date.now().toString();
 })
 ```
 
 Under the hood, the framework registers the closure in an action registry and generates Swift code that calls `HaxeBridgeC.invokeAction(id)`. You never see this &mdash; it just works.
 
-### State.set()
+### State Updates
 
-When you call `state.set()` from Haxe, the update flows back to SwiftUI automatically:
+When you update a `@:state` variable from Haxe, the update flows back to SwiftUI automatically:
 
 ```
-Haxe: state.set(newValue)
+Haxe: state.value = newValue
     │
     ▼
 C++ bridge: update stored value, notify Swift callback
@@ -35,7 +35,7 @@ Swift: @State property update
 SwiftUI: automatic re-render
 ```
 
-No annotation needed. Any `State<T>` variable participates in this flow.
+No annotation needed. Any `@:state` variable participates in this flow.
 
 ### Lifecycle Closures
 
@@ -44,15 +44,15 @@ No annotation needed. Any `State<T>` variable participates in this flow.
 ```haxe
 new VStack([...])
     .task(() -> {
-        status.set("Loading...");
+        status.value = "Loading...";
         var http = new haxe.Http("https://example.com");
-        http.onData = (d) -> data.set(d);
+        http.onData = (d) -> data.value = d;
         http.request(false);
     })
     .onDisappear(() -> trace("View disappeared"))
 ```
 
-These closures run in Haxe/C++ and can call `state.set()` to push updates back to SwiftUI.
+These closures run in Haxe/C++ and can update `@:state` variables to push updates back to SwiftUI.
 
 ## @:bridge (Explicit Named Exports)
 
@@ -74,7 +74,7 @@ new Button("Greet", null,
 ```haxe
 // No annotation — just use a closure
 new Button("Greet", () -> {
-    result.set('Hello, World! (from Haxe/C++)');
+    result.value = 'Hello, World! (from Haxe/C++)';
 })
 ```
 
@@ -89,7 +89,7 @@ Use `@:bridge` when you need to:
 
 You do **not** need `@:bridge` for:
 - Button closures (automatic)
-- `State.set()` updates (automatic)
+- `@:state` variable updates (automatic)
 - Lifecycle closures like `onAppear`, `task`, `onDisappear` (automatic)
 
 ## Calling @:bridge Functions
@@ -103,7 +103,7 @@ new Button("Greet", null,
 
 // Without @:bridge — same logic via closure
 new Button("Greet", () -> {
-    result.set('Hello, World! (from Haxe/C++)');
+    result.value = 'Hello, World! (from Haxe/C++)';
 })
 ```
 
@@ -119,7 +119,7 @@ new Button("Login", null,
     StateAction.BridgeCall("result", "doLogin", ["https://api.example.com", "user@email.com", "pass123"]))
 
 // Without @:bridge — same logic via closure
-new Button("Greet", () -> result.set(greet("World")))
+new Button("Greet", () -> result.value = greet("World"))
 ```
 
 ### Async with BridgeCallLoading
@@ -145,7 +145,7 @@ The `BridgeCallLoading` version sets the loading text immediately, then runs the
 │  Transparent (automatic)                        │
 │                                                 │
 │  Button closure ──→ action registry ──→ C++     │
-│  State.set()    ──→ callback        ──→ Swift   │
+│  state.value =  ──→ callback        ──→ Swift   │
 │  onAppear/task  ──→ action registry ──→ C++     │
 ├─────────────────────────────────────────────────┤
 │  @:bridge (explicit)                            │
@@ -161,13 +161,12 @@ The transparent bridge handles closures and state synchronization without any an
 
 ```haxe
 class BridgeApp extends App {
-    var result:State<String>;
+    @:state var result:String = "Press a button!";
 
     public function new() {
         super();
         appName = "BridgeDemo";
         bundleIdentifier = "com.sui.bridgedemo";
-        result = new State<String>("Press a button!", "result");
     }
 
     // Explicit bridge: callable by name from Swift as HaxeBridgeC.greet()
@@ -196,7 +195,7 @@ class BridgeApp extends App {
 
             // Uses transparent bridge (closure, no annotation needed)
             new Button("Hello via closure", () -> {
-                result.set("Hello from a closure!");
+                result.value = "Hello from a closure!";
             }),
         ]);
     }
@@ -205,12 +204,12 @@ class BridgeApp extends App {
 
 ## Multi-State Updates with State.setByName
 
-When a bridge function needs to update multiple state variables, use `State.setByName()` from a closure:
+When a bridge function needs to update multiple `@:state` variables, use `State.setByName()` from a closure:
 
 ```haxe
 new Button("Login", () -> {
     State.setByName("status", "Logging in...");
-    var result = doLogin(email.get(), password.get());
+    var result = doLogin(email.value, password.value);
     State.setByName("userName", result.name);
     State.setByName("mailboxCount", Std.string(result.mailboxes));
     State.setByName("isLoggedIn", "true");
@@ -218,14 +217,14 @@ new Button("Login", () -> {
 })
 ```
 
-Each `setByName` call immediately pushes the value to SwiftUI. This is the same mechanism that `State.set()` uses internally, but lets you target any state variable by name without needing a reference to the `State<T>` instance.
+Each `setByName` call immediately pushes the value to SwiftUI. This is the same mechanism that `.value =` uses internally, but lets you target any state variable by name without needing a direct reference to the `@:state` variable.
 
 ## Key Points
 
-- **Most bridging is automatic** &mdash; closures and `State.set()` just work
+- **Most bridging is automatic** &mdash; closures and `@:state` updates just work
 - `@:bridge` is only needed for named function exports callable from Swift expressions
 - `@:bridge` functions must be `public static`
 - They can accept and return basic types (`String`, `Int`, `Float`, `Bool`)
 - The generated bridge uses `HaxeBridgeC.functionName()` in Swift
 - Use `BridgeCallLoading` for operations that take time
-- Use `State.setByName()` to update multiple states from a single closure
+- Use `State.setByName()` to update multiple `@:state` variables from a single closure

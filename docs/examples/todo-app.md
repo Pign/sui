@@ -26,15 +26,13 @@ class TodoItem extends Observable {
 class TodoApp extends App {
     static function main() {}
 
-    var todos:State<Array<TodoItem>>;
-    var newItemText:State<String>;
+    @:state var todos:Array<TodoItem> = [];
+    @:state var newItemText:String = "";
 
     public function new() {
         super();
         appName = "TodoList";
         bundleIdentifier = "com.sui.todoapp";
-        todos = new State<Array<TodoItem>>([], "todos");
-        newItemText = new State<String>("", "newItemText");
     }
 
     override function body():View {
@@ -81,11 +79,10 @@ class TodoItem extends Observable {
 ### State Arrays
 
 ```haxe
-var todos:State<Array<TodoItem>>;
-todos = new State<Array<TodoItem>>([], "todos");
+@:state var todos:Array<TodoItem> = [];
 ```
 
-State can hold arrays of Observable objects. SwiftUI renders the list and updates when items are added, removed, or modified.
+`@:state` can hold arrays of Observable objects. SwiftUI renders the list and updates when items are added, removed, or modified.
 
 ### Text Input + Add Button
 

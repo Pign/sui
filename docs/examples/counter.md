@@ -1,6 +1,6 @@
 # Counter
 
-A counter app demonstrating state management with `State<T>`, `StateAction`, and `Text.withState`.
+A counter app demonstrating state management with `@:state`, `StateAction`, and `Text.withState`.
 
 ## Full Source
 
@@ -14,13 +14,12 @@ import sui.state.StateAction;
 class CounterApp extends App {
     static function main() {}
 
-    var count:State<Int>;
+    @:state var count:Int = 0;
 
     public function new() {
         super();
         appName = "Counter";
         bundleIdentifier = "com.sui.counter";
-        count = new State<Int>(0, "count");
     }
 
     override function body():View {
@@ -29,9 +28,9 @@ class CounterApp extends App {
                 .font(FontStyle.Title)
                 .padding(),
             new HStack(null, 20, [
-                new Button("-", () -> count.set(count.get() - 1),
+                new Button("-", () -> count.value = count.value - 1,
                     StateAction.Decrement("count", 1)),
-                new Button("+", () -> count.set(count.get() + 1),
+                new Button("+", () -> count.value = count.value + 1,
                     StateAction.Increment("count", 1))
             ])
         ]);
@@ -44,13 +43,10 @@ class CounterApp extends App {
 ### Declaring State
 
 ```haxe
-var count:State<Int>;
-
-// In constructor:
-count = new State<Int>(0, "count");
+@:state var count:Int = 0;
 ```
 
-`State<Int>` creates a reactive integer. The second argument `"count"` is the name used in generated Swift (`@State var count: Int = 0`).
+`@:state` creates a reactive integer. The variable name is used in generated Swift (`@State var count: Int = 0`). No constructor initialization needed.
 
 ### Displaying State
 
@@ -63,13 +59,13 @@ Text.withState("Count: {count}")
 ### Mutating State
 
 ```haxe
-new Button("-", () -> count.set(count.get() - 1),
+new Button("-", () -> count.value = count.value - 1,
     StateAction.Decrement("count", 1))
 ```
 
 Each button has two actions:
 
-1. **Haxe closure** `() -> count.set(count.get() - 1)` &mdash; Runs on the Haxe/C++ side, bridged automatically (no `@:bridge` needed)
+1. **Haxe closure** `() -> count.value = count.value - 1` &mdash; Runs on the Haxe/C++ side, bridged automatically (no `@:bridge` needed)
 2. **StateAction** `StateAction.Decrement("count", 1)` &mdash; Generates Swift `count -= 1` for immediate UI update
 
 Both are optional. Use `StateAction` for instant SwiftUI updates, closures for Haxe-side logic.
