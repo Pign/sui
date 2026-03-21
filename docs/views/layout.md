@@ -111,3 +111,44 @@ new ScrollView([
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `content` | `Array<View>` | required | Scrollable child views |
+
+## ConditionalView
+
+Conditionally renders views based on state. Maps to SwiftUI's `if/else` in a `@ViewBuilder`.
+
+### Boolean condition
+
+Show one view when a boolean state is true, another when false:
+
+```haxe
+new ConditionalView("isLoggedIn",
+    buildMainView(),     // shown when true
+    buildLoginView()     // shown when false
+)
+```
+
+The false branch is optional:
+
+```haxe
+new ConditionalView("showBanner", new Text("Welcome!"))
+```
+
+### String equality
+
+Match a string state against a specific value:
+
+```haxe
+new ConditionalView("currentScreen", "login",
+    buildLoginView(),     // shown when currentScreen == "login"
+    buildDefaultView()    // shown otherwise
+)
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `stateName` | `String` | Name of the state variable to check |
+| `trueView` | `View` | View shown when condition is true (boolean) or matched (string) |
+| `falseView` | `View` | *(optional)* View shown otherwise |
+| `matchValue` | `String` | *(string mode only)* Value to compare against |

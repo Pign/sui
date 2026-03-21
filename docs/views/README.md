@@ -29,6 +29,7 @@ sui provides 22 built-in views that map directly to SwiftUI components.
 | `NavigationLink` | Navigation | `NavigationLink` | Navigation trigger |
 | `NavigationSplitView` | Navigation | `NavigationSplitView` | Split view (iPad) |
 | `TabView` | Navigation | `TabView` | Tab-based navigation |
+| `ConditionalView` | Logic | `if/else` | Conditional rendering |
 
 ## Categories
 
