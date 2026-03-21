@@ -54,13 +54,13 @@ new VStack([...])
 
 These closures run in Haxe/C++ and can update `@:state` variables to push updates back to SwiftUI.
 
-## @:bridge (Explicit Named Exports)
+## @:expose (Explicit Named Exports)
 
-Use `@:bridge` when you want to expose a **named static function** to Swift, so you can call it from `StateAction.CustomSwift`, `BridgeCall`, or `BridgeCallLoading`:
+Use `@:expose` when you want to expose a **named static function** to Swift, so you can call it from `StateAction.CustomSwift`, `BridgeCall`, or `BridgeCallLoading`:
 
-**With @:bridge:**
+**With @:expose:**
 ```haxe
-@:bridge
+@:expose
 public static function greet(name:String):String {
     return 'Hello, $name! (from Haxe/C++)';
 }
@@ -70,7 +70,7 @@ new Button("Greet", null,
     StateAction.CustomSwift('result = HaxeBridgeC.greet("World")'))
 ```
 
-**Without @:bridge (closure equivalent):**
+**Without @:expose (closure equivalent):**
 ```haxe
 // No annotation — just use a closure
 new Button("Greet", () -> {
@@ -78,30 +78,30 @@ new Button("Greet", () -> {
 })
 ```
 
-The `@:bridge` version is useful when you need the return value in a Swift expression, or when you want to reuse the same function from multiple call sites. The closure version is simpler when you just need to run Haxe logic and update state.
+The `@:expose` version is useful when you need the return value in a Swift expression, or when you want to reuse the same function from multiple call sites. The closure version is simpler when you just need to run Haxe logic and update state.
 
-### When to Use @:bridge
+### When to Use @:expose
 
-Use `@:bridge` when you need to:
+Use `@:expose` when you need to:
 - Call a Haxe function from a `StateAction.CustomSwift` expression
 - Use `StateAction.BridgeCall` or `BridgeCallLoading`
 - Get a return value back from Haxe into a Swift expression
 
-You do **not** need `@:bridge` for:
+You do **not** need `@:expose` for:
 - Button closures (automatic)
 - `@:state` variable updates (automatic)
 - Lifecycle closures like `onAppear`, `task`, `onDisappear` (automatic)
 
-## Calling @:bridge Functions
+## Calling @:expose Functions
 
 ### From StateAction.CustomSwift
 
 ```haxe
-// With @:bridge — calls greet() by name in Swift
+// With @:expose — calls greet() by name in Swift
 new Button("Greet", null,
     StateAction.CustomSwift('result = HaxeBridgeC.greet("World")'))
 
-// Without @:bridge — same logic via closure
+// Without @:expose — same logic via closure
 new Button("Greet", () -> {
     result.value = 'Hello, World! (from Haxe/C++)';
 })
@@ -118,7 +118,7 @@ new Button("Greet", null,
 new Button("Login", null,
     StateAction.BridgeCall("result", "doLogin", ["https://api.example.com", "user@email.com", "pass123"]))
 
-// Without @:bridge — same logic via closure
+// Without @:expose — same logic via closure
 new Button("Greet", () -> result.value = greet("World"))
 ```
 
@@ -148,14 +148,14 @@ The `BridgeCallLoading` version sets the loading text immediately, then runs the
 │  state.value =  ──→ callback        ──→ Swift   │
 │  onAppear/task  ──→ action registry ──→ C++     │
 ├─────────────────────────────────────────────────┤
-│  @:bridge (explicit)                            │
+│  @:expose (explicit)                            │
 │                                                 │
 │  Swift code ──→ HaxeBridgeC.fn() ──→ C++ ──→   │
 │  Haxe static function ──→ return value ──→ Swift│
 └─────────────────────────────────────────────────┘
 ```
 
-The transparent bridge handles closures and state synchronization without any annotations. `@:bridge` adds named entry points for when Swift code needs to call specific Haxe functions by name and get return values.
+The transparent bridge handles closures and state synchronization without any annotations. `@:expose` adds named entry points for when Swift code needs to call specific Haxe functions by name and get return values.
 
 ## Full Example
 
@@ -170,12 +170,12 @@ class BridgeApp extends App {
     }
 
     // Explicit bridge: callable by name from Swift as HaxeBridgeC.greet()
-    @:bridge
+    @:expose
     public static function greet(name:String):String {
         return 'Hello, $name! (from Haxe/C++)';
     }
 
-    @:bridge
+    @:expose
     public static function fibonacci(n:Int):Int {
         if (n <= 1) return n;
         return fibonacci(n - 1) + fibonacci(n - 2);
@@ -189,7 +189,7 @@ class BridgeApp extends App {
                 .font(FontStyle.Title2)
                 .padding(),
 
-            // Uses @:bridge (named function, return value)
+            // Uses @:expose (named function, return value)
             new Button("Greet from Haxe", null,
                 StateAction.CustomSwift('result = HaxeBridgeC.greet("World")')),
 
@@ -222,8 +222,8 @@ Each `setByName` call immediately pushes the value to SwiftUI. This is the same 
 ## Key Points
 
 - **Most bridging is automatic** &mdash; closures and `@:state` updates just work
-- `@:bridge` is only needed for named function exports callable from Swift expressions
-- `@:bridge` functions must be `public static`
+- `@:expose` is only needed for named function exports callable from Swift expressions
+- `@:expose` functions must be `public static`
 - They can accept and return basic types (`String`, `Int`, `Float`, `Bool`)
 - The generated bridge uses `HaxeBridgeC.functionName()` in Swift
 - Use `BridgeCallLoading` for operations that take time

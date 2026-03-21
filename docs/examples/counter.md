@@ -65,7 +65,7 @@ new Button("-", () -> count.value = count.value - 1,
 
 Each button has two actions:
 
-1. **Haxe closure** `() -> count.value = count.value - 1` &mdash; Runs on the Haxe/C++ side, bridged automatically (no `@:bridge` needed)
+1. **Haxe closure** `() -> count.value = count.value - 1` &mdash; Runs on the Haxe/C++ side, bridged automatically (no `@:expose` needed)
 2. **StateAction** `StateAction.Decrement("count", 1)` &mdash; Generates Swift `count -= 1` for immediate UI update
 
 Both are optional. Use `StateAction` for instant SwiftUI updates, closures for Haxe-side logic.

@@ -21,13 +21,13 @@ class BridgeApp extends App {
     }
 
     /** Haxe business logic: generates a greeting. Runs in C++, called from Swift. **/
-    @:bridge
+    @:expose
     public static function greet(name:String):String {
         return 'Hello, $name! (from Haxe/C++)';
     }
 
     /** Haxe business logic: computes fibonacci. **/
-    @:bridge
+    @:expose
     public static function fibonacci(n:Int):Int {
         if (n <= 1) return n;
         return fibonacci(n - 1) + fibonacci(n - 2);

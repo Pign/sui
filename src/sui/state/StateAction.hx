@@ -24,7 +24,7 @@ enum StateAction {
     CustomSwift(code:String);
 
     /**
-        Call a @:bridge function asynchronously and assign the result to a state variable.
+        Call a @:expose function asynchronously and assign the result to a state variable.
         Runs in a Swift Task so the UI stays responsive.
 
         Single arg:  BridgeCall("result", "greet", "World")

@@ -2,15 +2,12 @@
 
 sui uses Haxe metadata annotations to control Swift code generation.
 
-## @:bridge
+## @:expose
 
-Exposes a named static function to Swift via the C++ bridge. This is only needed when you want to call a specific function by name from Swift expressions (e.g., in `StateAction.CustomSwift`, `BridgeCall`, or `BridgeCallLoading`).
+Exposes a static function to Swift as a named entry point (`HaxeBridgeC.functionName()`). This is an advanced escape hatch &mdash; most bridging is **automatic** via closures, `@:state` updates, and lifecycle handlers.
 
-Most bridge interactions are **automatic** &mdash; button closures, `@:state` updates, and lifecycle handlers work without any annotation.
-
-**With @:bridge:**
 ```haxe
-@:bridge
+@:expose
 public static function greet(name:String):String {
     return 'Hello, $name!';
 }
@@ -20,21 +17,23 @@ new Button("Greet", null,
     StateAction.CustomSwift('result = HaxeBridgeC.greet("World")'))
 ```
 
-**Without @:bridge (closure equivalent):**
+**Closure equivalent (preferred for most cases):**
 ```haxe
-public static function greet(name:String):String {
+function greet(name:String):String {
     return 'Hello, $name!';
 }
 
-// Call via closure — bridged automatically:
+// Instance method — bridged automatically:
 new Button("Greet", () -> result.value = greet("World"))
 ```
 
-**Generated Swift (with @:bridge):** `HaxeBridgeC.greet("World")`
+**Generated Swift (with @:expose):** `HaxeBridgeC.greet("World")`
 
-**Requirements (for @:bridge):**
+**Requirements:**
 - Must be `public static`
 - Parameters and return types must be basic types (`String`, `Int`, `Float`, `Bool`)
+
+`@:bridge` is accepted as a backward-compatible alias for `@:expose`.
 
 See [Bridge](bridge.md) for full details.
 
@@ -127,7 +126,8 @@ See [Native Extensions](native-extensions.md) for full details.
 
 | Metadata | Target | Purpose |
 |----------|--------|---------|
-| `@:bridge` | Static function | Expose named function to Swift (most bridging is automatic) |
+| `@:expose` | Static function | Expose named function to Swift (most bridging is automatic) |
+| `@:state` | App field | Declare reactive state (`@:state var count:Int = 0`) |
 | `@:swiftBinding` | Component property / constructor param | Generate `@Binding var` |
 | `@:swiftLabel` | Constructor parameter | Set Swift argument label |
 | `@:swiftName` | Function / type | Override generated Swift name |
