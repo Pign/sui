@@ -55,4 +55,22 @@ class State<T> {
     public function onValueChanged(callback:T->Void):Void {
         onChange = callback;
     }
+
+    /**
+        Update a SwiftUI state variable by name from Haxe.
+        Useful in bridge function closures to update multiple states at once:
+
+        ```haxe
+        new Button("Login", () -> {
+            var result = doLogin(email.get(), password.get());
+            State.setByName("userName", result.name);
+            State.setByName("isLoggedIn", "true");
+        })
+        ```
+    **/
+    public static function setByName(key:String, value:String):Void {
+        #if cpp
+        untyped __cpp__('_hxsui_notify_swift({0}.utf8_str(), {1}.utf8_str())', key, value);
+        #end
+    }
 }

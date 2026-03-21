@@ -203,6 +203,23 @@ class BridgeApp extends App {
 }
 ```
 
+## Multi-State Updates with State.setByName
+
+When a bridge function needs to update multiple state variables, use `State.setByName()` from a closure:
+
+```haxe
+new Button("Login", () -> {
+    State.setByName("status", "Logging in...");
+    var result = doLogin(email.get(), password.get());
+    State.setByName("userName", result.name);
+    State.setByName("mailboxCount", Std.string(result.mailboxes));
+    State.setByName("isLoggedIn", "true");
+    State.setByName("status", "Welcome!");
+})
+```
+
+Each `setByName` call immediately pushes the value to SwiftUI. This is the same mechanism that `State.set()` uses internally, but lets you target any state variable by name without needing a reference to the `State<T>` instance.
+
 ## Key Points
 
 - **Most bridging is automatic** &mdash; closures and `State.set()` just work
@@ -211,3 +228,4 @@ class BridgeApp extends App {
 - They can accept and return basic types (`String`, `Int`, `Float`, `Bool`)
 - The generated bridge uses `HaxeBridgeC.functionName()` in Swift
 - Use `BridgeCallLoading` for operations that take time
+- Use `State.setByName()` to update multiple states from a single closure
