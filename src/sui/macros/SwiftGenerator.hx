@@ -141,7 +141,11 @@ class SwiftGenerator {
 
         // 3. Pre-detect @:expose / @:bridge methods
         for (field in cls.statics.get()) {
-            if (field.meta.has(":expose") || field.meta.has(":bridge")) needsRuntimeBridge = true;
+            if (field.meta.has(":bridge")) {
+                Context.warning('@:bridge is deprecated, use @:expose instead', field.pos);
+                needsRuntimeBridge = true;
+            }
+            if (field.meta.has(":expose")) needsRuntimeBridge = true;
         }
 
         // 4. Walk body() method (may also set needsRuntimeBridge for complex closures)
