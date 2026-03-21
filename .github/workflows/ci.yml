@@ -15,7 +15,8 @@ jobs:
       - name: Install Haxe
         run: |
           brew install haxe
-          haxelib setup /usr/local/lib/haxe/lib
+          mkdir -p ~/haxelib
+          haxelib setup ~/haxelib
 
       - name: Install hxcpp
         run: |
