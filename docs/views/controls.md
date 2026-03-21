@@ -62,6 +62,24 @@ new TextField("Enter your name...", "username")
 | `TextFieldStyleValue.RoundedBorder` | Rounded border style |
 | `TextFieldStyleValue.Plain` | No decoration |
 
+## SecureField
+
+A password input field that hides user input. Same API as `TextField`.
+
+```haxe
+new SecureField("Password", "password")
+    .textFieldStyle(TextFieldStyleValue.RoundedBorder)
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `placeholder` | `String` | Placeholder text |
+| `textBinding` | `String` | Name of the `@State var` (String) to bind to |
+
+Supports the same `textFieldStyle` modifier as `TextField`.
+
 ## Toggle
 
 A boolean switch bound to a `@State` bool.
