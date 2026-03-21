@@ -1,0 +1,5 @@
+{
+    "appName": "TodoList",
+    "bundleIdentifier": "com.haxeapple.todoapp",
+    "bundleIdPrefix": "com.haxeapple"
+}

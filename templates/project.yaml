@@ -1,0 +1,30 @@
+name: {{APP_NAME}}
+options:
+  bundleIdPrefix: {{BUNDLE_ID_PREFIX}}
+  deploymentTarget:
+    {{PLATFORM}}: "{{DEPLOYMENT_TARGET}}"
+  xcodeVersion: "15.0"
+settings:
+  SWIFT_VERSION: "5.9"
+  CLANG_CXX_LANGUAGE_STANDARD: c++17
+  OTHER_SWIFT_FLAGS:
+    - "-cxx-interoperability-mode=default"
+  HEADER_SEARCH_PATHS:
+    - "$(PROJECT_DIR)/bridge"
+    - "$(PROJECT_DIR)/cpp/include"
+targets:
+  {{APP_NAME}}:
+    type: application
+    platform: {{PLATFORM}}
+    sources:
+      - path: Sources
+        type: group
+      - path: bridge
+        type: group
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: {{BUNDLE_IDENTIFIER}}
+      INFOPLIST_FILE: Info.plist
+      CODE_SIGN_ENTITLEMENTS: Entitlements.plist
+      LIBRARY_SEARCH_PATHS:
+        - "$(PROJECT_DIR)/cpp/lib"
+    dependencies: []

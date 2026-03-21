@@ -1,0 +1,5 @@
+{
+    "appName": "Counter",
+    "bundleIdentifier": "com.haxeapple.counter",
+    "bundleIdPrefix": "com.haxeapple"
+}

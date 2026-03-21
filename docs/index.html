@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sui</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --theme-color: #EA8220;
+      --theme-color-light: #F5A623;
+    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .sidebar { font-family: 'Inter', sans-serif; }
+    .sidebar li a { font-size: 14px; }
+    .markdown-section h1 { font-weight: 700; }
+    .markdown-section h2 { font-weight: 600; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+    .markdown-section code { color: #EA8220; }
+    .markdown-section pre>code { color: inherit; }
+    .app-nav { font-family: 'Inter', sans-serif; }
+    .cover-main .anchor span { color: #EA8220; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.$docsify = {
+      name: 'sui',
+      repo: '',
+      loadSidebar: true,
+      subMaxLevel: 3,
+      search: {
+        placeholder: 'Search docs...',
+        noData: 'No results.',
+        paths: 'auto'
+      },
+      auto2top: true,
+      routerMode: 'hash'
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-haxe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-swift.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+</body>
+</html>

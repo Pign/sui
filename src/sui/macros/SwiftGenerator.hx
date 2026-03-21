@@ -1,0 +1,1562 @@
+package sui.macros;
+
+#if macro
+import haxe.macro.Context;
+#end
+
+using StringTools;
+
+/**
+    Compile-time macro that generates Swift/SwiftUI source files from the Haxe view DSL.
+    Runs during `haxe build.hxml` via `--macro sui.macros.SwiftGenerator.register()`.
+    No binary execution needed — Swift files are emitted as a side effect of compilation.
+**/
+class SwiftGenerator {
+
+    /** Hook into the Haxe compiler. Called via --macro in build.hxml. **/
+    public static function register() {
+        #if macro
+        var outputDir = Context.defined("swift-output") ? Context.definedValue("swift-output") : "build/swift";
+
+        Context.onGenerate(function(types:Array<haxe.macro.Type>) {
+            // First pass: collect Observable structs and ViewComponent types
+            var modelTypes = new Map<String, haxe.macro.Type.ClassType>();
+            var componentTypes = new Map<String, haxe.macro.Type.ClassType>();
+            for (type in types) {
+                switch (type) {
+                    case TInst(classRef, _):
+                        var cls = classRef.get();
+                        if (isObservableSubclass(cls))
+                            modelTypes.set(cls.name, cls);
+                        if (isViewComponentSubclass(cls))
+                            componentTypes.set(cls.name, cls);
+                    default:
+                }
+            }
+
+            // Second pass: generate Swift for App subclasses
+            for (type in types) {
+                switch (type) {
+                    case TInst(classRef, _):
+                        var cls = classRef.get();
+                        if (isAppSubclass(cls)) {
+                            generateSwift(cls, outputDir, modelTypes, componentTypes);
+                        }
+                    default:
+                }
+            }
+        });
+        #end
+    }
+
+    #if macro
+
+    // ── Type detection ──────────────────────────────────────────────
+
+    static function isAppSubclass(cls:haxe.macro.Type.ClassType):Bool {
+        if (cls.name == "App" && cls.pack.join(".") == "sui") return false;
+        var sc = cls.superClass;
+        while (sc != null) {
+            var scCls = sc.t.get();
+            if (scCls.name == "App" && scCls.pack.join(".") == "sui") return true;
+            sc = scCls.superClass;
+        }
+        return false;
+    }
+
+    static function isObservableSubclass(cls:haxe.macro.Type.ClassType):Bool {
+        if (cls.name == "Observable" && cls.pack.join(".") == "sui.state") return false;
+        var sc = cls.superClass;
+        while (sc != null) {
+            var scCls = sc.t.get();
+            if (scCls.name == "Observable" && scCls.pack.join(".") == "sui.state") return true;
+            sc = scCls.superClass;
+        }
+        return false;
+    }
+
+    static function isValidStateType(type:haxe.macro.Type):Bool {
+        switch (type) {
+            case TAbstract(absRef, _):
+                var name = absRef.get().name;
+                if (name == "Int" || name == "Float" || name == "Bool") return true;
+                return false;
+            case TInst(classRef, params):
+                var cls = classRef.get();
+                if (cls.name == "String" && cls.pack.length == 0) return true;
+                if (cls.name == "Array" && params.length > 0) return isValidStateType(params[0]);
+                return isObservableSubclass(cls);
+            default:
+                return false;
+        }
+    }
+
+    static function isViewComponentSubclass(cls:haxe.macro.Type.ClassType):Bool {
+        if (cls.name == "ViewComponent" && cls.pack.join(".") == "sui") return false;
+        var sc = cls.superClass;
+        while (sc != null) {
+            var scCls = sc.t.get();
+            if (scCls.name == "ViewComponent" && scCls.pack.join(".") == "sui") return true;
+            sc = scCls.superClass;
+        }
+        return false;
+    }
+
+    // ── Main generation ─────────────────────────────────────────────
+
+    static function generateSwift(cls:haxe.macro.Type.ClassType, outputDir:String, ?modelTypes:Map<String, haxe.macro.Type.ClassType>, ?componentTypes:Map<String, haxe.macro.Type.ClassType>):Void {
+        var className = cls.name;
+        var appName = className;
+        var bundleId = 'com.example.${className.toLowerCase()}';
+        localBindings = new Map();
+        needsRuntimeBridge = false;
+        nextActionId = 0;
+
+        // 1. Find State<T> fields
+        var stateDecls:Array<{name:String, swiftType:String, defaultValue:String}> = [];
+        for (field in cls.fields.get()) {
+            switch (field.type) {
+                case TInst(ref, params):
+                    if (ref.get().name == "State" && ref.get().pack.join(".") == "sui.state" && params.length > 0) {
+                        if (!isValidStateType(params[0])) {
+                            var st = haxeTypeToSwift(params[0]);
+                            Context.error('[SwiftGen] State<${st}> is not supported. Use a basic type (Int, Float, Bool, String), an array of basic types, or a class extending Observable.', field.pos);
+                        }
+                        var st = haxeTypeToSwift(params[0]);
+                        stateDecls.push({name: field.name, swiftType: st, defaultValue: swiftDefault(st)});
+                    }
+                default:
+            }
+        }
+
+        // 2. Walk constructor for appName, bundleId, state inits
+        if (cls.constructor != null) {
+            var ctorExpr = cls.constructor.get().expr();
+            if (ctorExpr != null) walkCtor(ctorExpr, stateDecls, function(n:String, v:String) {
+                if (n == "appName") appName = v;
+                else if (n == "bundleIdentifier") bundleId = v;
+            });
+        }
+
+        // 3. Pre-detect @:bridge methods
+        for (field in cls.statics.get()) {
+            if (field.meta.has(":bridge")) needsRuntimeBridge = true;
+        }
+
+        // 4. Walk body() method (may also set needsRuntimeBridge for complex closures)
+        var bodySwift = "        // empty body\n";
+        for (field in cls.fields.get()) {
+            if (field.name == "body") {
+                var expr = field.expr();
+                if (expr != null)
+                    bodySwift = walkFunc(expr, 2);
+                break;
+            }
+        }
+
+        // 5. Emit App.swift (after needsRuntimeBridge is finalized)
+        var appSwift = new StringBuf();
+        appSwift.add("import SwiftUI\n\n");
+        appSwift.add("@main\n");
+        appSwift.add('struct ${className}App: App {\n');
+        appSwift.add("    init() {\n");
+        appSwift.add("        HaxeRuntime.initialize()\n");
+        if (needsRuntimeBridge) {
+            appSwift.add("        HaxeBridgeC.registerCallbacks()\n");
+        }
+        appSwift.add("    }\n\n");
+        appSwift.add("    var body: some Scene {\n");
+        appSwift.add('        WindowGroup("${esc(appName)}") {\n');
+        appSwift.add("            ContentView()\n");
+        appSwift.add("        }\n");
+        appSwift.add("    }\n");
+        appSwift.add("}\n");
+
+        // 5. Emit ContentView.swift
+        var viewSwift = new StringBuf();
+        viewSwift.add("import SwiftUI\n");
+        if (bodySwift.indexOf("Model3D") != -1 || bodySwift.indexOf("RealityView") != -1)
+            viewSwift.add("import RealityKit\n");
+        viewSwift.add("\n");
+        viewSwift.add("struct ContentView: View {\n");
+
+        if (needsRuntimeBridge && stateDecls.length > 0) {
+            // Bridged mode: use AppState observable
+            viewSwift.add("    var appState = AppState.shared\n\n");
+        } else {
+            // Standalone mode: use @State
+            for (sd in stateDecls)
+                viewSwift.add('    @State private var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
+            if (stateDecls.length > 0) viewSwift.add("\n");
+        }
+
+        viewSwift.add("    var body: some View {\n");
+
+        if (needsRuntimeBridge && stateDecls.length > 0) {
+            // Replace state variable references with appState.name
+            var bodyWithAppState = bodySwift;
+            for (sd in stateDecls) {
+                // Replace $name (binding) with $appState.name
+                bodyWithAppState = StringTools.replace(bodyWithAppState, '$$$${sd.name}', '$$appState.${sd.name}');
+                // Replace bare name references in interpolation (already correct: \(name) → \(appState.name))
+                // We need to be careful to only replace in Swift interpolation contexts
+                bodyWithAppState = StringTools.replace(bodyWithAppState, '\\(${sd.name})', '\\(appState.${sd.name})');
+            }
+            viewSwift.add(bodyWithAppState);
+        } else {
+            viewSwift.add(bodySwift);
+        }
+
+        viewSwift.add("    }\n");
+        viewSwift.add("}\n");
+
+        // 6. Generate model structs for Observable subclasses used by this app
+        var modelSwift = new StringBuf();
+        if (modelTypes != null) {
+            for (modelName in modelTypes.keys()) {
+                // Check if any state decl references this model type
+                var used = false;
+                for (sd in stateDecls) {
+                    if (sd.swiftType.indexOf(modelName) != -1) { used = true; break; }
+                }
+                if (used) {
+                    var modelCls = modelTypes.get(modelName);
+                    modelSwift.add(generateModelStruct(modelCls));
+                    modelSwift.add("\n");
+                }
+            }
+        }
+
+        // 7. Detect @:bridge static methods → generate C header + Swift wrapper
+        var bridgeFunctions:Array<{name:String, params:Array<{name:String, swiftType:String}>, returnType:String}> = [];
+        for (field in cls.statics.get()) {
+            if (field.meta.has(":bridge")) {
+                var params:Array<{name:String, swiftType:String}> = [];
+                var retType = "Void";
+                switch (field.type) {
+                    case TFun(fnArgs, ret):
+                        for (a in fnArgs)
+                            params.push({name: a.name, swiftType: haxeTypeToSwift(a.t)});
+                        retType = haxeTypeToSwift(ret);
+                    default:
+                }
+                bridgeFunctions.push({name: field.name, params: params, returnType: retType});
+            }
+        }
+
+        // 8. Write files
+        ensureDir(outputDir);
+        sys.io.File.saveContent('$outputDir/App.swift', appSwift.toString());
+
+        var contentWithModels = new StringBuf();
+        contentWithModels.add(viewSwift.toString());
+        if (modelSwift.toString().length > 0) {
+            contentWithModels.add("\n");
+            contentWithModels.add(modelSwift.toString());
+        }
+        sys.io.File.saveContent('$outputDir/ContentView.swift', contentWithModels.toString());
+
+        // Write bridge files if bridge is needed (explicit @:bridge or runtime closures)
+        if (needsRuntimeBridge || bridgeFunctions.length > 0) {
+            sys.io.File.saveContent('$outputDir/HaxeBridgeC.h', generateBridgeHeader(bridgeFunctions, needsRuntimeBridge));
+            sys.io.File.saveContent('$outputDir/HaxeBridgeC.cpp', generateBridgeCpp(className, bridgeFunctions, needsRuntimeBridge));
+            sys.io.File.saveContent('$outputDir/HaxeBridgeC.swift', generateBridgeSwift(className, bridgeFunctions, needsRuntimeBridge));
+        }
+
+        // Generate AppState.swift for bridged apps with state
+        if (needsRuntimeBridge && stateDecls.length > 0) {
+            sys.io.File.saveContent('$outputDir/AppState.swift', generateAppState(stateDecls));
+        }
+
+        // Generate Swift structs for ViewComponent subclasses
+        if (componentTypes != null) {
+            for (compName in componentTypes.keys()) {
+                var compCls = componentTypes.get(compName);
+                var compSwift = generateComponent(compCls);
+                if (compSwift != null) {
+                    sys.io.File.saveContent('$outputDir/$compName.swift', compSwift);
+                }
+            }
+        }
+    }
+
+    /** Generate an @Observable AppState class for bridged state management. **/
+    static function generateAppState(stateDecls:Array<{name:String, swiftType:String, defaultValue:String}>):String {
+        var buf = new StringBuf();
+        buf.add("import Foundation\nimport Observation\n\n");
+        buf.add("@Observable\n");
+        buf.add("class AppState {\n");
+        buf.add("    static let shared = AppState()\n\n");
+        for (sd in stateDecls)
+            buf.add('    var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
+        buf.add("\n    func set(_ key: String, _ value: String) {\n");
+        buf.add("        switch key {\n");
+        for (sd in stateDecls) {
+            switch (sd.swiftType) {
+                case "Int": buf.add('        case "${sd.name}": ${sd.name} = Int(value) ?? 0\n');
+                case "Double": buf.add('        case "${sd.name}": ${sd.name} = Double(value) ?? 0.0\n');
+                case "Bool": buf.add('        case "${sd.name}": ${sd.name} = value == "true"\n');
+                default: buf.add('        case "${sd.name}": ${sd.name} = value\n');
+            }
+        }
+        buf.add("        default: break\n");
+        buf.add("        }\n");
+        buf.add("    }\n");
+        buf.add("}\n");
+        return buf.toString();
+    }
+
+    /** Generate a Swift View struct from a ViewComponent subclass. **/
+    static function generateComponent(cls:haxe.macro.Type.ClassType):String {
+        localBindings = new Map();
+
+        var buf = new StringBuf();
+        buf.add("import SwiftUI\n\n");
+        buf.add('struct ${cls.name}: View {\n');
+
+        // Generate properties from constructor parameters
+        // For @:binding params, look up the real type from the class field
+        if (cls.constructor != null) {
+            var ctor = cls.constructor.get();
+            var paramInfo = getParamInfo(ctor);
+
+            switch (ctor.type) {
+                case TFun(fnArgs, _):
+                    for (i in 0...fnArgs.length) {
+                        var arg = fnArgs[i];
+                        var isBinding = i < paramInfo.length && paramInfo[i].isBinding;
+
+                        if (isBinding) {
+                            // Look up real type from class field with @:binding metadata
+                            var realType = "String";
+                            for (field in cls.fields.get()) {
+                                if (field.name == arg.name && field.meta.has(":swiftBinding")) {
+                                    realType = haxeTypeToSwift(field.type);
+                                    break;
+                                }
+                            }
+                            buf.add('    @Binding var ${arg.name}: ${realType}\n');
+                        } else {
+                            var swiftType = haxeTypeToSwift(arg.t);
+                            buf.add('    let ${arg.name}: ${swiftType}\n');
+                        }
+                    }
+                default:
+            }
+        }
+
+        buf.add("\n");
+
+        // Generate body
+        buf.add("    var body: some View {\n");
+        for (field in cls.fields.get()) {
+            if (field.name == "body") {
+                var expr = field.expr();
+                if (expr != null)
+                    buf.add(walkFunc(expr, 2));
+                break;
+            }
+        }
+        buf.add("    }\n");
+        buf.add("}\n");
+
+        return buf.toString();
+    }
+
+    // ── Bridge generation ───────────────────────────────────────────
+
+    static function swiftTypeToCType(t:String):String {
+        return switch (t) {
+            case "Int": "int32_t";
+            case "Double" | "Float": "double";
+            case "Bool": "bool";
+            case "String": "const char*";
+            case "Void": "void";
+            default: "void*";
+        }
+    }
+
+    static function generateBridgeHeader(fns:Array<{name:String, params:Array<{name:String, swiftType:String}>, returnType:String}>, hasRuntimeActions:Bool):String {
+        var buf = new StringBuf();
+        buf.add("#ifndef HAXE_BRIDGE_C_H\n#define HAXE_BRIDGE_C_H\n\n");
+        buf.add("#include <stdint.h>\n#include <stdbool.h>\n\n");
+        buf.add("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n");
+        buf.add("void haxe_bridge_init(void);\n\n");
+
+        if (hasRuntimeActions) {
+            buf.add("// Invoke a registered button action by ID\n");
+            buf.add("void haxe_bridge_invoke_action(int32_t actionId);\n\n");
+            buf.add("// State callback: called by Haxe when State.set() is invoked\n");
+            buf.add("typedef void (*haxe_state_callback_t)(const char* key, const char* value);\n");
+            buf.add("void haxe_bridge_register_state_callback(haxe_state_callback_t callback);\n\n");
+        }
+
+        for (fn in fns) {
+            var cParams = [for (p in fn.params) '${swiftTypeToCType(p.swiftType)} ${p.name}'];
+            if (cParams.length == 0) cParams.push("void");
+            buf.add('${swiftTypeToCType(fn.returnType)} haxe_bridge_${fn.name}(${cParams.join(", ")});\n');
+        }
+        buf.add("\n#ifdef __cplusplus\n}\n#endif\n\n#endif\n");
+        return buf.toString();
+    }
+
+    /** Generate C++ bridge that calls into real hxcpp-compiled Haxe code. **/
+    static function generateBridgeCpp(appClassName:String, fns:Array<{name:String, params:Array<{name:String, swiftType:String}>, returnType:String}>, hasRuntimeActions:Bool):String {
+        var buf = new StringBuf();
+        buf.add('#include "HaxeBridgeC.h"\n');
+        buf.add("#include <hxcpp.h>\n");
+        buf.add('#include "${appClassName}.h"\n');
+        if (hasRuntimeActions) {
+            buf.add('#include "sui/ui/Button.h"\n');
+        }
+        buf.add("#include <string.h>\n\n");
+        buf.add("// Auto-generated bridge: calls into hxcpp-compiled Haxe code.\n\n");
+
+        buf.add("extern \"C\" void __hxcpp_lib_main() {}\n");
+
+        if (hasRuntimeActions) {
+            buf.add("// Forward declaration for State.cpp's registration function\n");
+            buf.add("extern \"C\" void haxe_bridge_register_state_fn(void (*)(const char*, const char*));\n");
+        }
+        buf.add("\n");
+
+        if (hasRuntimeActions) {
+            // State callback: Swift → C → Haxe State.set() → C → Swift AppState
+            buf.add("static haxe_state_callback_t _swift_state_cb = nullptr;\n\n");
+            buf.add("void haxe_bridge_register_state_callback(haxe_state_callback_t callback) {\n");
+            buf.add("    _swift_state_cb = callback;\n");
+            buf.add("}\n\n");
+
+            // Forward to Swift when Haxe State.set() fires
+            buf.add("static void _bridge_state_forwarder(const char* key, const char* value) {\n");
+            buf.add("    if (_swift_state_cb) _swift_state_cb(key, value);\n");
+            buf.add("}\n\n");
+        }
+
+        // haxe_bridge_init: boots hxcpp runtime, registers callbacks, builds view tree
+        buf.add("void haxe_bridge_init(void) {\n");
+        buf.add("    int dummy = 0;\n");
+        buf.add("    hx::SetTopOfStack(&dummy, true);\n");
+        buf.add("    hx::Boot();\n");
+        buf.add("    __boot_all();\n");
+
+        if (hasRuntimeActions) {
+            buf.add("\n    // Register state change forwarder (State.set() → Swift AppState)\n");
+            buf.add("    haxe_bridge_register_state_fn(_bridge_state_forwarder);\n");
+            buf.add("\n    // Build view tree to register button actions\n");
+            buf.add('    auto app = ::${appClassName}_obj::__new();\n');
+            buf.add("    app->body();\n");
+        }
+
+        buf.add("}\n\n");
+
+        if (hasRuntimeActions) {
+            // invoke_action: calls into Haxe Button action registry
+            buf.add("void haxe_bridge_invoke_action(int32_t actionId) {\n");
+            buf.add("    // Set up hxcpp thread-local storage for this thread\n");
+            buf.add("    // (needed when called from Swift Task.detached background threads)\n");
+            buf.add("    int dummy = 0;\n");
+            buf.add("    hx::SetTopOfStack(&dummy, true);\n");
+            buf.add("    ::sui::ui::Button_obj::_invokeAction(actionId);\n");
+            buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+            buf.add("}\n\n");
+        }
+
+        for (fn in fns) {
+            var cParams = [for (p in fn.params) '${swiftTypeToCType(p.swiftType)} ${p.name}'];
+            if (cParams.length == 0) cParams.push("void");
+            buf.add('${swiftTypeToCType(fn.returnType)} haxe_bridge_${fn.name}(${cParams.join(", ")}) {\n');
+
+            // Build hxcpp call arguments
+            var hxArgs:Array<String> = [];
+            for (p in fn.params) {
+                switch (p.swiftType) {
+                    case "String": hxArgs.push('::String(${p.name})');
+                    case "Int": hxArgs.push('(int)${p.name}');
+                    case "Double" | "Float": hxArgs.push('(double)${p.name}');
+                    case "Bool": hxArgs.push('(bool)${p.name}');
+                    default: hxArgs.push(p.name);
+                }
+            }
+
+            var call = '::${appClassName}_obj::${fn.name}(${hxArgs.join(", ")})';
+
+            switch (fn.returnType) {
+                case "String":
+                    // Return hxcpp string as C string via static buffer
+                    buf.add('    ::String _hx_result = $call;\n');
+                    buf.add("    static char _buf[4096];\n");
+                    buf.add("    const char* _cstr = _hx_result.__CStr();\n");
+                    buf.add("    strncpy(_buf, _cstr, sizeof(_buf) - 1);\n");
+                    buf.add("    _buf[sizeof(_buf) - 1] = 0;\n");
+                    buf.add("    return _buf;\n");
+                case "Int":
+                    buf.add('    return (int32_t)$call;\n');
+                case "Double" | "Float":
+                    buf.add('    return (double)$call;\n');
+                case "Bool":
+                    buf.add('    return (bool)$call;\n');
+                default:
+                    buf.add('    $call;\n');
+            }
+
+            buf.add("}\n\n");
+        }
+        return buf.toString();
+    }
+
+    static function generateBridgeSwift(appClassName:String, fns:Array<{name:String, params:Array<{name:String, swiftType:String}>, returnType:String}>, hasRuntimeActions:Bool):String {
+        var buf = new StringBuf();
+        buf.add("import Foundation\n\n");
+
+        if (hasRuntimeActions) {
+            // State callback: receives state updates from Haxe and dispatches to AppState
+            buf.add("/// Called from C when Haxe State.set() is invoked.\n");
+            buf.add("/// Updates AppState on the main thread so SwiftUI re-renders.\n");
+            buf.add("func swiftStateCallback(_ key: UnsafePointer<CChar>?, _ value: UnsafePointer<CChar>?) {\n");
+            buf.add("    let k = String(cString: key!)\n");
+            buf.add("    let v = String(cString: value!)\n");
+            buf.add("    DispatchQueue.main.async {\n");
+            buf.add("        AppState.shared.set(k, v)\n");
+            buf.add("    }\n");
+            buf.add("}\n\n");
+        }
+
+        buf.add("/// Swift wrapper for Haxe bridge functions.\n");
+        buf.add("enum HaxeBridgeC {\n");
+
+        if (hasRuntimeActions) {
+            buf.add("    /// Register the state callback. Called during HaxeRuntime.initialize().\n");
+            buf.add("    static func registerCallbacks() {\n");
+            buf.add("        haxe_bridge_register_state_callback(swiftStateCallback)\n");
+            buf.add("    }\n\n");
+            buf.add("    /// Invoke a button action registered in the Haxe view tree.\n");
+            buf.add("    static func invokeAction(_ id: Int) {\n");
+            buf.add("        haxe_bridge_invoke_action(Int32(id))\n");
+            buf.add("    }\n\n");
+        }
+        for (fn in fns) {
+            var swiftParams = [for (p in fn.params) '_ ${p.name}: ${p.swiftType}'];
+            var retArrow = fn.returnType != "Void" ? ' -> ${fn.returnType}' : "";
+            buf.add('    static func ${fn.name}(${swiftParams.join(", ")})${retArrow} {\n');
+
+            // Call C function, casting Swift types to C types
+            var cArgs:Array<String> = [];
+            for (p in fn.params) {
+                if (p.swiftType == "String")
+                    cArgs.push('${p.name}.cString(using: .utf8)');
+                else if (p.swiftType == "Int")
+                    cArgs.push('Int32(${p.name})');
+                else if (p.swiftType == "Double")
+                    cArgs.push('Double(${p.name})');
+                else
+                    cArgs.push(p.name);
+            }
+
+            if (fn.returnType == "String") {
+                buf.add('        let cStr = haxe_bridge_${fn.name}(${cArgs.join(", ")})\n');
+                buf.add('        return String(cString: cStr!)\n');
+            } else if (fn.returnType == "Int") {
+                buf.add('        return Int(haxe_bridge_${fn.name}(${cArgs.join(", ")}))\n');
+            } else if (fn.returnType != "Void") {
+                buf.add('        return ${fn.returnType}(haxe_bridge_${fn.name}(${cArgs.join(", ")}))\n');
+            } else {
+                buf.add('        haxe_bridge_${fn.name}(${cArgs.join(", ")})\n');
+            }
+            buf.add("    }\n\n");
+        }
+        buf.add("}\n");
+        return buf.toString();
+    }
+
+    /** Generate a Swift struct from an Observable subclass. **/
+    static function generateModelStruct(cls:haxe.macro.Type.ClassType):String {
+        var buf = new StringBuf();
+        buf.add('struct ${cls.name}: Identifiable, Hashable {\n');
+        buf.add('    let id = UUID()\n');
+
+        for (field in cls.fields.get()) {
+            // Skip inherited fields from Observable
+            if (field.name.charAt(0) == "_") continue;
+            if (field.name == "notifyPropertyChanged" || field.name == "consumeChanges") continue;
+
+            var swiftType = haxeTypeToSwift(field.type);
+            var defaultVal = swiftDefault(swiftType);
+            buf.add('    var ${field.name}: ${swiftType} = ${defaultVal}\n');
+        }
+
+        buf.add("}\n");
+        return buf.toString();
+    }
+
+    // ── Constructor walking ─────────────────────────────────────────
+
+    static function walkCtor(expr:haxe.macro.Type.TypedExpr, stateDecls:Array<{name:String, swiftType:String, defaultValue:String}>, onAssign:(String, String) -> Void):Void {
+        if (expr == null) return;
+        switch (expr.expr) {
+            case TFunction(f):
+                walkCtor(f.expr, stateDecls, onAssign);
+            case TBlock(el):
+                for (e in el) walkCtor(e, stateDecls, onAssign);
+            case TBinop(op, lhs, rhs):
+                // Only handle OpAssign (index 4 in Binop enum)
+                if (isOpAssign(op)) {
+                    var fieldName = extractFieldName(lhs);
+                    if (fieldName != null) {
+                        // String assignment (appName = "...", bundleIdentifier = "...")
+                        var strVal = extractString(rhs);
+                        if (strVal != null) onAssign(fieldName, strVal);
+
+                        // State init: field = new State<T>(value, "name")
+                        switch (rhs.expr) {
+                            case TNew(classRef, _, args):
+                                if (classRef.get().name == "State" && args.length >= 1) {
+                                    var initVal = extractConstant(args[0]);
+                                    // Handle array literals: new State([])
+                                    if (initVal == null) {
+                                        var u = unwrap(args[0]);
+                                        switch (u.expr) {
+                                            case TArrayDecl(_): initVal = "[]";
+                                            default:
+                                        }
+                                    }
+                                    var stateName = if (args.length >= 2) extractString(args[1]) else null;
+                                    for (sd in stateDecls) {
+                                        if (sd.name == fieldName) {
+                                            if (initVal != null) sd.defaultValue = initVal;
+                                            if (stateName != null) sd.name = stateName;
+                                        }
+                                    }
+                                }
+                            default:
+                        }
+                    }
+                }
+            default:
+        }
+    }
+
+    static function isOpAssign(op:haxe.macro.Expr.Binop):Bool {
+        return switch (op) {
+            case OpAssign: true;
+            default: false;
+        }
+    }
+
+    // ── View expression walking ─────────────────────────────────────
+
+    // Variable bindings collected from TVar/TBlock so TLocal can be resolved
+    static var localBindings:Map<Int, haxe.macro.Type.TypedExpr> = new Map();
+    /** Tracks whether the current app needs the runtime bridge (has button closures). **/
+    static var needsRuntimeBridge:Bool = false;
+    /** Counter for button action IDs (must match Button._nextActionId at runtime). **/
+    static var nextActionId:Int = 0;
+
+    static function walkFunc(expr:haxe.macro.Type.TypedExpr, indent:Int):String {
+        if (expr == null) return "";
+        switch (expr.expr) {
+            case TFunction(f): return walkFunc(f.expr, indent);
+            case TBlock(el):
+                // Collect variable bindings, then process the return
+                for (e in el) {
+                    switch (e.expr) {
+                        case TVar(v, initExpr):
+                            if (initExpr != null)
+                                localBindings.set(v.id, initExpr);
+                        default:
+                    }
+                }
+                if (el.length > 0) return walkFunc(el[el.length - 1], indent);
+                return "";
+            case TReturn(e): return if (e != null) viewToSwift(e, indent) else "";
+            default:
+                return viewToSwift(expr, indent);
+        }
+    }
+
+    static function viewToSwift(expr:haxe.macro.Type.TypedExpr, indent:Int):String {
+        // Unwrap casts, metas, parentheses
+        var unwrapped = unwrap(expr);
+
+        // Peel modifier chain (outside-in)
+        var modifiers:Array<String> = [];
+        var base = peelModifiers(unwrapped, modifiers, indent);
+
+        // Generate base view
+        var baseCode = baseToSwift(base, indent);
+
+        if (modifiers.length == 0) return baseCode;
+
+        // Append modifiers after base view
+        // Replace __LIFECYCLE_ACTION__ placeholders with actual IDs
+        // (assigned AFTER children, matching runtime registration order)
+        var trimmed = baseCode.rtrim();
+        var pad = ind(indent);
+        var buf = new StringBuf();
+        buf.add(trimmed);
+        for (mod in modifiers) {
+            var resolved = mod;
+            while (resolved.indexOf("__LIFECYCLE_ACTION__") != -1) {
+                var aid = nextActionId++;
+                resolved = StringTools.replace(resolved, "__LIFECYCLE_ACTION__", Std.string(aid));
+            }
+            buf.add('\n${pad}    .$resolved');
+        }
+        buf.add("\n");
+        return buf.toString();
+    }
+
+    static function unwrap(expr:haxe.macro.Type.TypedExpr):haxe.macro.Type.TypedExpr {
+        return switch (expr.expr) {
+            case TCast(e, _): unwrap(e);
+            case TMeta(_, e): unwrap(e);
+            case TParenthesis(e): unwrap(e);
+            case TLocal(v):
+                if (localBindings.exists(v.id))
+                    unwrap(localBindings.get(v.id));
+                else
+                    expr;
+            default: expr;
+        }
+    }
+
+    static function peelModifiers(expr:haxe.macro.Type.TypedExpr, mods:Array<String>, indent:Int = 0):haxe.macro.Type.TypedExpr {
+        var e = unwrap(expr);
+        switch (e.expr) {
+            case TCall(callee, args):
+                var calU = unwrap(callee);
+                switch (calU.expr) {
+                    case TField(inner, fa):
+                        var name = faName(fa);
+                        if (isModifier(name)) {
+                            mods.insert(0, modToSwift(name, args, indent));
+                            return peelModifiers(inner, mods, indent);
+                        }
+                    default:
+                }
+            default:
+        }
+        return e;
+    }
+
+    static function baseToSwift(expr:haxe.macro.Type.TypedExpr, indent:Int):String {
+        var pad = ind(indent);
+        var e = unwrap(expr);
+        switch (e.expr) {
+            case TNew(classRef, _, args):
+                return newToSwift(classRef.get(), args, indent);
+            case TCall(callee, args):
+                return factoryToSwift(unwrap(callee), args, indent);
+            case TParenthesis(inner):
+                return baseToSwift(inner, indent);
+            default:
+                Context.warning('[SwiftGen] Cannot generate Swift for expression: ${e.expr.getName()}. Use a literal, constructor, or factory method.', e.pos);
+                return '${pad}// [sui] unhandled expression: ${e.expr.getName()}\n';
+        }
+    }
+
+    // ── View constructors ───────────────────────────────────────────
+
+    static function newToSwift(cls:haxe.macro.Type.ClassType, args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
+        var pad = ind(indent);
+        var name = cls.name;
+        switch (name) {
+            case "VStack" | "HStack" | "ZStack":
+                var spacing:String = null;
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        case TConst(c):
+                            switch (c) {
+                                case TFloat(v): spacing = v;
+                                case TInt(v): spacing = Std.string(v);
+                                default:
+                            }
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                if (spacing != null)
+                    buf.add('${pad}${name}(spacing: ${spacing}) {\n');
+                else
+                    buf.add('${pad}${name} {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "Text":
+                if (args.length > 0) {
+                    var text = extractString(args[0]);
+                    if (text != null) return '${pad}Text("${esc(text)}")\n';
+                    // Check for property reference: this.fieldName → emit as expression
+                    var propName = extractThisField(args[0]);
+                    if (propName != null) return '${pad}Text(${propName})\n';
+                }
+                return '${pad}Text("")\n';
+
+            case "Button":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var actionCode:String = null;
+
+                // Check for StateAction (args[2])
+                if (args.length > 2) {
+                    actionCode = stateActionToSwift(args[2]);
+                }
+
+                // If no StateAction, check if there's a runtime closure/function (args[1])
+                if (actionCode == null && args.length > 1) {
+                    var closureExpr = unwrap(args[1]);
+                    switch (closureExpr.expr) {
+                        case TConst(TNull):
+                            // null — no action
+                        default:
+                            // Any non-null function reference (closure, method ref, local var)
+                            // → invoke via bridge at runtime
+                            var aid = nextActionId++;
+                            needsRuntimeBridge = true;
+                            actionCode = 'Task.detached { HaxeBridgeC.invokeAction($aid) }';
+                    }
+                }
+
+                if (actionCode == null) actionCode = "// no action";
+
+                var buf = new StringBuf();
+                buf.add('${pad}Button("${esc(label != null ? label : "")}") {\n');
+                buf.add('${pad}    ${actionCode}\n');
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "NavigationLink":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var buf = new StringBuf();
+                if (label != null && label.length > 0) {
+                    buf.add('${pad}NavigationLink("${esc(label)}") {\n');
+                    if (args.length > 1) buf.add(viewToSwift(args[1], indent + 1));
+                    buf.add('${pad}}\n');
+                } else {
+                    // Custom label view: NavigationLink(destination:) { label }
+                    buf.add('${pad}NavigationLink {\n');
+                    if (args.length > 1) buf.add(viewToSwift(args[1], indent + 1));
+                    buf.add('${pad}} label: {\n');
+                    // labelView would be passed differently — handle basic case
+                    buf.add('${pad}    Text("Link")\n');
+                    buf.add('${pad}}\n');
+                }
+                return buf.toString();
+
+            case "Spacer":
+                if (args.length > 0) {
+                    var v = extractConstant(args[0]);
+                    if (v != null) return '${pad}Spacer(minLength: ${v})\n';
+                }
+                return '${pad}Spacer()\n';
+
+            case "NavigationStack":
+                var buf = new StringBuf();
+                buf.add('${pad}NavigationStack {\n');
+                for (arg in args) {
+                    switch (arg.expr) {
+                        case TConst(TNull): // skip null args
+                        default: buf.add(viewToSwift(arg, indent + 1));
+                    }
+                }
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "List":
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    switch (arg.expr) {
+                        case TArrayDecl(el): children = el;
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                buf.add('${pad}List {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "Image":
+                if (args.length > 0) {
+                    var n = extractString(args[0]);
+                    return '${pad}Image("${esc(n != null ? n : "")}")\n';
+                }
+                return '${pad}Image("")\n';
+
+            case "Picker":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var binding = if (args.length > 1) extractString(args[1]) else "selection";
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                if (args.length > 2) {
+                    var uArg = unwrap(args[2]);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                buf.add('${pad}Picker("${esc(label != null ? label : "")}", selection: $$${binding}) {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "Slider":
+                var binding = if (args.length > 0) extractString(args[0]) else "value";
+                var rangeMin = if (args.length > 1) extractConstant(args[1]) else "0";
+                var rangeMax = if (args.length > 2) extractConstant(args[2]) else "1";
+                return '${pad}Slider(value: $$${binding}, in: ${rangeMin}...${rangeMax})\n';
+
+            case "ScrollView":
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        case TConst(TNull):
+                        default: children.push(arg);
+                    }
+                }
+                var buf = new StringBuf();
+                buf.add('${pad}ScrollView {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "Form":
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                buf.add('${pad}Form {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "ForEach":
+                return forEachToSwift(args, indent);
+
+            case "TabView":
+                return tabViewToSwift(args, indent);
+
+            case "NavigationSplitView":
+                // args[0] = sidebar, args[1] = detail
+                var buf = new StringBuf();
+                buf.add('${pad}NavigationSplitView {\n');
+                if (args.length > 0) buf.add(viewToSwift(args[0], indent + 1));
+                buf.add('${pad}} detail: {\n');
+                if (args.length > 1) buf.add(viewToSwift(args[1], indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "Section":
+                var header:String = null;
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        case TConst(TString(s)): header = s;
+                        case TConst(TNull):
+                        default:
+                            // Could be a string header
+                            var s = extractString(uArg);
+                            if (s != null) header = s;
+                    }
+                }
+                var buf = new StringBuf();
+                if (header != null)
+                    buf.add('${pad}Section("${esc(header)}") {\n');
+                else
+                    buf.add('${pad}Section {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            default:
+                // Generic: read @:swiftView, @:swiftLabel, @:swiftBinding metadata
+                return genericViewToSwift(cls, args, indent);
+        }
+    }
+
+    /** Generic view generation using @:swiftView, @:swiftLabel, @:swiftBinding metadata. **/
+    static function genericViewToSwift(cls:haxe.macro.Type.ClassType, args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
+        var pad = ind(indent);
+        var swiftName = getMetaString(cls.meta, ":swiftView");
+        if (swiftName == null) swiftName = cls.name;
+
+        // Read constructor parameter metadata
+        if (cls.constructor != null) {
+            var ctor = cls.constructor.get();
+            var paramInfo = getParamInfo(ctor);
+            var swiftArgs:Array<String> = [];
+
+            for (i in 0...args.length) {
+                if (i >= paramInfo.length) break;
+                var info = paramInfo[i];
+                var argVal = resolveArgValue(args[i], info.isBinding);
+                if (argVal == null) continue; // skip null optionals
+
+                if (info.label == "_") {
+                    swiftArgs.push(argVal);
+                } else if (info.label != null) {
+                    swiftArgs.push('${info.label}: $argVal');
+                } else {
+                    swiftArgs.push(argVal);
+                }
+            }
+            return '${pad}${swiftName}(${swiftArgs.join(", ")})\n';
+        }
+
+        return '${pad}// [sui] Unknown view: ${cls.name} — add @:swiftView metadata or a constructor\n';
+    }
+
+    /** Resolve an argument to its Swift string value, handling bindings. **/
+    static function resolveArgValue(expr:haxe.macro.Type.TypedExpr, isBinding:Bool):String {
+        var e = unwrap(expr);
+        switch (e.expr) {
+            case TConst(TNull): return null;
+            default:
+        }
+        var str = extractString(e);
+        if (str != null) {
+            if (isBinding) return '$$$str'; // emit $varName
+            return '"${esc(str)}"';
+        }
+        var c = extractConstant(e);
+        return c;
+    }
+
+    // ── ForEach ─────────────────────────────────────────────────────
+
+    /**
+        ForEach constructor: new ForEach(arrayName, itemName, childView)
+        Generates: ForEach(0..<arrayName.count, id: \.self) { itemName in childView }
+    **/
+    static function forEachToSwift(args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
+        var pad = ind(indent);
+        // args[0] = array state name (String), args[1] = item var name (String), args[2] = child view
+        var arrayName = if (args.length > 0) extractString(args[0]) else "items";
+        var itemName = if (args.length > 1) extractString(args[1]) else "item";
+
+        var buf = new StringBuf();
+        buf.add('${pad}ForEach(0..<${arrayName}.count, id: \\.self) { ${itemName} in\n');
+
+        if (args.length > 2) {
+            buf.add(viewToSwift(args[2], indent + 1));
+        }
+
+        buf.add('${pad}}\n');
+        return buf.toString();
+    }
+
+    /**
+        TabView: args is an array of TabItem objects (created via TNew or TObjectDecl).
+        Each TabItem has {label, systemImage, content}.
+        The macro walks the constructor args to extract the tab items array.
+    **/
+    static function tabViewToSwift(args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
+        var pad = ind(indent);
+        var buf = new StringBuf();
+        buf.add('${pad}TabView {\n');
+
+        // args[0] should be an array of TabItem structs
+        if (args.length > 0) {
+            var uArg = unwrap(args[0]);
+            switch (uArg.expr) {
+                case TArrayDecl(items):
+                    for (item in items) {
+                        var uItem = unwrap(item);
+                        // TabItem is constructed as an anonymous object or via fields
+                        var label = "";
+                        var sysImg = "";
+                        var contentExpr:haxe.macro.Type.TypedExpr = null;
+
+                        switch (uItem.expr) {
+                            case TObjectDecl(fields):
+                                for (f in fields) {
+                                    switch (f.name) {
+                                        case "label": label = extractString(f.expr) ?? "";
+                                        case "systemImage": sysImg = extractString(f.expr) ?? "";
+                                        case "content": contentExpr = f.expr;
+                                    }
+                                }
+                            default:
+                        }
+
+                        if (contentExpr != null) {
+                            buf.add(viewToSwift(contentExpr, indent + 1));
+                            // Remove trailing newline, add tabItem modifier
+                            var code = buf.toString();
+                            if (code.endsWith("\n")) {
+                                buf = new StringBuf();
+                                buf.add(code.substr(0, code.length - 1));
+                            }
+                            buf.add('\n${pad}        .tabItem { Label("${esc(label)}", systemImage: "${esc(sysImg)}") }\n');
+                        }
+                    }
+                default:
+            }
+        }
+
+        buf.add('${pad}}\n');
+        return buf.toString();
+    }
+
+    // ── Static factory calls ────────────────────────────────────────
+    // Reads @:swiftName on the method and @:swiftLabel on parameters
+    // to generically emit any Swift call without hardcoding.
+    // Special case: Text.withState uses template interpolation.
+
+    static function factoryToSwift(callee:haxe.macro.Type.TypedExpr, args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
+        var pad = ind(indent);
+        switch (callee.expr) {
+            case TField(_, fa):
+                switch (fa) {
+                    case FStatic(classRef, fieldRef):
+                        var cls = classRef.get();
+                        var field = fieldRef.get();
+
+                        // Special case: Text.withState uses {var} → \(var) interpolation
+                        if (cls.name == "Text" && field.name == "withState" && args.length > 0) {
+                            var template = extractString(args[0]);
+                            if (template != null)
+                                return '${pad}Text(${templateToSwift(template)})\n';
+                        }
+
+                        // Generic: read @:swiftName and @:swiftLabel metadata
+                        var swiftName = getMetaString(field.meta, ":swiftName");
+                        if (swiftName != null) {
+                            return generateSwiftCall(swiftName, field, args, pad);
+                        }
+
+                        // Fallback: use Haxe class name + labeled args from metadata
+                        return generateSwiftCall(cls.name, field, args, pad);
+                    default:
+                }
+            default:
+        }
+        Context.warning('[SwiftGen] Cannot generate Swift for this factory call. Add @:swiftName metadata to the method.', callee.pos);
+        return '${pad}// [sui] unhandled factory call — add @:swiftName metadata\n';
+    }
+
+    /** Generate a Swift function/initializer call using @:swiftLabel/@:swiftBinding metadata. **/
+    static function generateSwiftCall(swiftName:String, field:haxe.macro.Type.ClassField, args:Array<haxe.macro.Type.TypedExpr>, pad:String):String {
+        var params = getParamInfo(field);
+        var swiftArgs:Array<String> = [];
+
+        for (i in 0...args.length) {
+            if (i >= params.length) break;
+            var info = params[i];
+            var argVal = resolveArgValue(args[i], info.isBinding);
+            if (argVal == null) continue;
+
+            if (info.label == "_") {
+                swiftArgs.push(argVal);
+            } else if (info.label != null) {
+                swiftArgs.push('${info.label}: $argVal');
+            } else {
+                swiftArgs.push(argVal);
+            }
+        }
+
+        return '${pad}${swiftName}(${swiftArgs.join(", ")})\n';
+    }
+
+    /** Read @:swiftLabel and @:swiftBinding metadata from parameters. **/
+    static function getParamInfo(field:haxe.macro.Type.ClassField):Array<{label:Null<String>, isBinding:Bool}> {
+        var info:Array<{label:Null<String>, isBinding:Bool}> = [];
+
+        switch (field.type) {
+            case TFun(fnArgs, _):
+                for (_ in fnArgs)
+                    info.push({label: null, isBinding: false});
+            default:
+                return info;
+        }
+
+        var expr = field.expr();
+        if (expr != null) {
+            switch (expr.expr) {
+                case TFunction(f):
+                    for (i in 0...f.args.length) {
+                        if (i >= info.length) break;
+                        var v = f.args[i].v;
+                        if (v.meta != null) {
+                            var label = getMetaString(v.meta, ":swiftLabel");
+                            if (label != null) info[i].label = label;
+                            if (v.meta.has(":swiftBinding")) info[i].isBinding = true;
+                        }
+                    }
+                default:
+            }
+        }
+        return info;
+    }
+
+    /** Extract a string value from a metadata entry like @:swiftName("Foo"). **/
+    static function getMetaString(meta:haxe.macro.Type.MetaAccess, name:String):String {
+        if (meta == null || !meta.has(name)) return null;
+        var entries = meta.extract(name);
+        if (entries.length > 0 && entries[0].params != null && entries[0].params.length > 0) {
+            switch (entries[0].params[0].expr) {
+                case EConst(c):
+                    switch (c) {
+                        case CString(s, _): return s;
+                        default:
+                    }
+                default:
+            }
+        }
+        return null;
+    }
+
+    // ── State actions ───────────────────────────────────────────────
+
+    static function stateActionToSwift(expr:haxe.macro.Type.TypedExpr):String {
+        switch (expr.expr) {
+            case TCall(callee, args):
+                switch (callee.expr) {
+                    case TField(_, fa):
+                        switch (fa) {
+                            case FEnum(_, ef):
+                                var p0 = if (args.length > 0) extractString(args[0]) else null;
+                                var p1 = if (args.length > 1) extractConstant(args[1]) else null;
+                                return switch (ef.name) {
+                                    case "Increment": '${p0} += ${p1 != null ? p1 : "1"}';
+                                    case "Decrement": '${p0} -= ${p1 != null ? p1 : "1"}';
+                                    case "SetValue": '${p0} = ${p1 != null ? p1 : "0"}';
+                                    case "Toggle": '${p0}.toggle()';
+                                    case "CustomSwift": p0 != null ? p0 : "// custom";
+                                    case "BridgeCall":
+                                        var fnName = if (args.length > 1) extractString(args[1]) else "unknown";
+                                        var fnArg = if (args.length > 2) extractString(args[2]) else null;
+                                        var argStr = fnArg != null ? '"${esc(fnArg)}"' : "";
+                                        'Task { @MainActor in ${p0} = HaxeBridgeC.${fnName}(${argStr}) }';
+                                    case "BridgeCallLoading":
+                                        var loadingVal = if (args.length > 1) extractString(args[1]) else "Loading...";
+                                        var fnName = if (args.length > 2) extractString(args[2]) else "unknown";
+                                        var fnArg = if (args.length > 3) extractString(args[3]) else null;
+                                        var argStr = fnArg != null ? '"${esc(fnArg)}"' : "";
+                                        '${p0} = "${esc(loadingVal)}"; Task { @MainActor in ${p0} = HaxeBridgeC.${fnName}(${argStr}) }';
+                                    default: null;
+                                }
+                            default:
+                        }
+                    default:
+                }
+            case TConst(TNull):
+                return null;
+            default:
+        }
+        return null;
+    }
+
+    // ── Modifiers ───────────────────────────────────────────────────
+
+    static function isModifier(name:String):Bool {
+        return switch (name) {
+            case "padding" | "font" | "foregroundColor" | "background" | "bold" | "italic" |
+                 "frame" | "cornerRadius" | "opacity" | "navigationTitle" | "multilineTextAlignment" |
+                 "disabled" | "overlay" | "shadow" | "lineLimit" | "textFieldStyle" |
+                 "toggleStyle" | "pickerStyle" | "scrollIndicators" |
+                 "sheet" | "alert" | "confirmationDialog" | "searchable" | "toolbar" | "animation" |
+                 "onAppear" | "onDisappear" | "task" | "navigationDestination":
+                true;
+            default: false;
+        }
+    }
+
+    static function modToSwift(name:String, args:Array<haxe.macro.Type.TypedExpr>, indent:Int = 0):String {
+        return switch (name) {
+            case "padding":
+                var v = if (args.length > 0) extractConstant(args[0]) else null;
+                v != null ? 'padding(${v})' : "padding()";
+            case "font":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'font(.${e != null ? camel(e) : "body"})';
+            case "foregroundColor":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'foregroundStyle(.${e != null ? camel(e) : "primary"})';
+            case "background":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'background(.${e != null ? camel(e) : "clear"})';
+            case "bold": "bold()";
+            case "italic": "italic()";
+            case "opacity":
+                var v = if (args.length > 0) extractConstant(args[0]) else "1.0";
+                'opacity(${v})';
+            case "navigationTitle":
+                var s = if (args.length > 0) extractString(args[0]) else "";
+                'navigationTitle("${esc(s != null ? s : "")}")';
+            case "cornerRadius":
+                var v = if (args.length > 0) extractConstant(args[0]) else "0";
+                'clipShape(RoundedRectangle(cornerRadius: ${v}))';
+            case "frame":
+                var parts:Array<String> = [];
+                if (args.length > 0) { var w = extractConstant(args[0]); if (w != null) parts.push('width: $w'); }
+                if (args.length > 1) { var h = extractConstant(args[1]); if (h != null) parts.push('height: $h'); }
+                'frame(${parts.join(", ")})';
+            case "disabled":
+                var v = if (args.length > 0) extractConstant(args[0]) else "true";
+                'disabled($v)';
+            case "lineLimit":
+                var v = if (args.length > 0) extractConstant(args[0]) else "1";
+                'lineLimit($v)';
+            case "shadow":
+                var parts:Array<String> = [];
+                if (args.length > 0) { var e = extractEnumName(args[0]); if (e != null) parts.push('color: .${camel(e)}'); }
+                if (args.length > 1) { var r = extractConstant(args[1]); if (r != null) parts.push('radius: $r'); }
+                'shadow(${parts.join(", ")})';
+            case "textFieldStyle":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'textFieldStyle(.${e != null ? camel(e) : "automatic"})';
+            case "toggleStyle":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'toggleStyle(.${e != null ? camel(e) : "automatic"})';
+            case "pickerStyle":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'pickerStyle(.${e != null ? camel(e) : "automatic"})';
+            case "navigationDestination":
+                var pad2 = ind(indent + 1);
+                var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else '${pad2}    Text("Destination")\n';
+                'navigationDestination(for: String.self) { value in\n${contentSwift}${pad2}}';
+
+            // --- Lifecycle modifiers (closures → bridge actions) ---
+            // Use __LIFECYCLE_ACTION__ placeholder, replaced after children are processed
+            case "onAppear":
+                needsRuntimeBridge = true;
+                'onAppear { Task.detached { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) } }';
+            case "onDisappear":
+                needsRuntimeBridge = true;
+                'onDisappear { Task.detached { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) } }';
+            case "task":
+                needsRuntimeBridge = true;
+                'task { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) }';
+
+            // --- Content-bearing modifiers ---
+            case "sheet":
+                var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
+                var pad = ind(indent + 1);
+                var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 2) else '${pad}    Text("Sheet")\n';
+                'sheet(isPresented: $$${binding}) {\n${contentSwift}${pad}}';
+            case "alert":
+                var title = if (args.length > 0) extractString(args[0]) else "Alert";
+                var binding = if (args.length > 1) extractString(args[1]) else "showAlert";
+                var message = if (args.length > 2) extractString(args[2]) else null;
+                if (message != null)
+                    'alert("${esc(title != null ? title : "")}", isPresented: $$${binding}) {} message: { Text("${esc(message)}") }';
+                else
+                    'alert("${esc(title != null ? title : "")}", isPresented: $$${binding}) { Button("OK") {} }';
+            case "confirmationDialog":
+                var title = if (args.length > 0) extractString(args[0]) else "Confirm";
+                var binding = if (args.length > 1) extractString(args[1]) else "showConfirm";
+                var pad = ind(indent + 1);
+                var contentSwift = if (args.length > 2) viewToSwift(args[2], indent + 2) else '${pad}    Button("OK") {}\n';
+                'confirmationDialog("${esc(title != null ? title : "")}", isPresented: $$${binding}) {\n${contentSwift}${pad}}';
+            case "searchable":
+                var binding = if (args.length > 0) extractString(args[0]) else "searchText";
+                var prompt = if (args.length > 1) extractString(args[1]) else null;
+                if (prompt != null)
+                    'searchable(text: $$${binding}, prompt: "${esc(prompt)}")';
+                else
+                    'searchable(text: $$${binding})';
+            case "toolbar":
+                var pad = ind(indent + 1);
+                var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
+                'toolbar {\n${contentSwift}${pad}}';
+            case "animation":
+                var value = if (args.length > 0) extractString(args[0]) else null;
+                if (value != null)
+                    'animation(.default, value: ${value})';
+                else
+                    "animation(.default)";
+            case "overlay":
+                var pad = ind(indent + 1);
+                var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
+                'overlay {\n${contentSwift}${pad}}';
+            default:
+                // Generic: try to pass through args
+                if (args.length == 0) '${name}()';
+                else {
+                    var vals = [for (a in args) { var c = extractConstant(a); c != null ? c : { var e = extractEnumName(a); e != null ? '.${camel(e)}' : "/* expr */"; }; }];
+                    '${name}(${vals.join(", ")})';
+                }
+        }
+    }
+
+    // ── Extraction helpers ──────────────────────────────────────────
+
+    static function faName(fa:haxe.macro.Type.FieldAccess):String {
+        return switch (fa) {
+            case FInstance(_, _, cf) | FStatic(_, cf) | FClosure(_, cf) | FAnon(cf): cf.get().name;
+            case FDynamic(s): s;
+            case FEnum(_, ef): ef.name;
+        }
+    }
+
+    static function extractFieldName(expr:haxe.macro.Type.TypedExpr):String {
+        return switch (expr.expr) {
+            case TField(_, fa): faName(fa);
+            default: null;
+        }
+    }
+
+    static function extractString(expr:haxe.macro.Type.TypedExpr):String {
+        if (expr == null) return null;
+        return switch (expr.expr) {
+            case TConst(TString(s)): s;
+            case TCast(e, _): extractString(e);
+            case TParenthesis(e): extractString(e);
+            default: null;
+        }
+    }
+
+    static function extractConstant(expr:haxe.macro.Type.TypedExpr):String {
+        if (expr == null) return null;
+        return switch (expr.expr) {
+            case TConst(c): switch (c) {
+                case TString(s): '"${esc(s)}"';
+                case TInt(v): Std.string(v);
+                case TFloat(v): v;
+                case TBool(b): b ? "true" : "false";
+                default: null;
+            }
+            case TCast(e, _): extractConstant(e);
+            case TParenthesis(e): extractConstant(e);
+            default: null;
+        }
+    }
+
+    /** Extract a `this.fieldName` reference → returns the field name. **/
+    static function extractThisField(expr:haxe.macro.Type.TypedExpr):String {
+        var e = unwrap(expr);
+        return switch (e.expr) {
+            case TField(inner, fa):
+                var innerU = unwrap(inner);
+                switch (innerU.expr) {
+                    case TConst(TThis): faName(fa);
+                    default: null;
+                }
+            default: null;
+        }
+    }
+
+    static function extractEnumName(expr:haxe.macro.Type.TypedExpr):String {
+        return switch (expr.expr) {
+            case TField(_, fa): switch (fa) {
+                case FEnum(_, ef): ef.name;
+                default: null;
+            }
+            default: null;
+        }
+    }
+
+    // ── Type helpers ────────────────────────────────────────────────
+
+    static function haxeTypeToSwift(type:haxe.macro.Type):String {
+        return switch (type) {
+            case TInst(ref, params):
+                var name = ref.get().name;
+                switch (name) {
+                    case "String": "String";
+                    case "Array":
+                        if (params.length > 0)
+                            '[${haxeTypeToSwift(params[0])}]';
+                        else
+                            "[Any]";
+                    default: name;
+                }
+            case TAbstract(ref, _): switch (ref.get().name) {
+                case "Int": "Int";
+                case "Float": "Double";
+                case "Bool": "Bool";
+                case "Null":
+                    // Null<T> → T? but for State we just use T
+                    "Any";
+                default: ref.get().name;
+            }
+            default: "Any";
+        }
+    }
+
+    static function swiftDefault(swiftType:String):String {
+        if (swiftType.charAt(0) == "[") return "[]"; // array types
+        return switch (swiftType) {
+            case "Int": "0";
+            case "Double" | "Float": "0.0";
+            case "Bool": "false";
+            case "String": '""';
+            default: '\${swiftType}()';
+        }
+    }
+
+    // ── String helpers ──────────────────────────────────────────────
+
+    static function esc(s:String):String {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+
+    static function camel(s:String):String {
+        if (s == null || s.length == 0) return s;
+        return s.charAt(0).toLowerCase() + s.substr(1);
+    }
+
+    static function templateToSwift(template:String):String {
+        var buf = new StringBuf();
+        buf.add('"');
+        var i = 0;
+        while (i < template.length) {
+            var ch = template.charAt(i);
+            if (ch == "{") {
+                var end = template.indexOf("}", i);
+                if (end != -1) {
+                    buf.add("\\(");
+                    buf.add(template.substr(i + 1, end - i - 1));
+                    buf.add(")");
+                    i = end + 1;
+                    continue;
+                }
+            }
+            if (ch == '"') buf.add("\\");
+            if (ch == "\\") buf.add("\\");
+            buf.add(ch);
+            i++;
+        }
+        buf.add('"');
+        return buf.toString();
+    }
+
+    static function ind(level:Int):String {
+        var s = "";
+        for (_ in 0...level) s += "    ";
+        return s;
+    }
+
+    static function ensureDir(path:String):Void {
+        var parts = path.split("/");
+        var current = "";
+        for (part in parts) {
+            if (part == "") continue;
+            current = current == "" ? part : '$current/$part';
+            if (!sys.FileSystem.exists(current))
+                sys.FileSystem.createDirectory(current);
+        }
+    }
+
+    #end // #if macro
+}

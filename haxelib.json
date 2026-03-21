@@ -1,0 +1,15 @@
+{
+    "name": "sui",
+    "url": "https://github.com/sui/sui",
+    "license": "MIT",
+    "description": "Build native macOS, iOS, and visionOS apps in Haxe using SwiftUI",
+    "version": "0.1.0",
+    "classPath": "src",
+    "dependencies": {
+        "hxcpp": ""
+    },
+    "main": "tools.cli.CLI",
+    "contributors": [],
+    "releasenote": "Initial release — Phase 1: Hello World on macOS",
+    "tags": ["apple", "macos", "ios", "visionos", "swiftui", "native", "ui"]
+}

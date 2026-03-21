@@ -1,0 +1,79 @@
+package sui.modifiers;
+
+import sui.View;
+
+/**
+    Represents a SwiftUI view modifier in the Haxe AST.
+    Each variant maps to a SwiftUI modifier call in generated Swift code.
+**/
+enum ViewModifier {
+    // Layout
+    PaddingDefault;
+    Padding(value:Float);
+    PaddingEdges(edges:Edge, value:Float);
+    Frame(width:Null<Float>, height:Null<Float>, alignment:Null<Alignment>);
+
+    // Typography
+    Font(style:FontStyle);
+    Bold;
+    Italic;
+    MultilineTextAlignment(alignment:TextAlignment);
+
+    // Colors & Appearance
+    ForegroundColor(color:ColorValue);
+    Background(color:ColorValue);
+    Opacity(value:Float);
+
+    // Shape
+    CornerRadius(radius:Float);
+    ClipShape(shape:ShapeType);
+
+    // Navigation
+    NavigationTitle(title:String);
+    NavigationDestination(content:sui.View);
+
+    // Interaction
+    Disabled(isDisabled:Bool);
+    LineLimit(lines:Int);
+
+    // Styles
+    TextFieldStyle(style:sui.View.TextFieldStyleValue);
+
+    // Presentation
+    Sheet(isPresentedBinding:String, content:sui.View);
+    Alert(title:String, isPresentedBinding:String, message:Null<String>);
+    ConfirmationDialog(title:String, isPresentedBinding:String, content:sui.View);
+
+    // Search & Toolbar
+    Searchable(textBinding:String, prompt:Null<String>);
+    Toolbar(content:sui.View);
+    Overlay(content:sui.View);
+
+    // Animation
+    Animation(value:String);
+
+    // Lifecycle
+    OnAppear(actionId:Int);
+    OnDisappear(actionId:Int);
+    TaskOnAppear(actionId:Int);
+
+    // Spacing
+    FixedSize(horizontal:Bool, vertical:Bool);
+}
+
+enum Edge {
+    Top;
+    Bottom;
+    Leading;
+    Trailing;
+    Horizontal;
+    Vertical;
+    All;
+}
+
+enum ShapeType {
+    Rectangle;
+    RoundedRectangle(cornerRadius:Float);
+    Circle;
+    Capsule;
+}

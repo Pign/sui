@@ -1,0 +1,5 @@
+-cp src
+-lib hxcpp
+--macro sui.macros.SwiftGenerator.register()
+-main sui.App
+-cpp build/cpp

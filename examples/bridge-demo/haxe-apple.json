@@ -1,0 +1,5 @@
+{
+    "appName": "BridgeDemo",
+    "bundleIdentifier": "com.haxeapple.bridgedemo",
+    "bundleIdPrefix": "com.haxeapple"
+}

@@ -1,0 +1,49 @@
+import sui.App;
+import sui.View;
+import sui.ui.*;
+import sui.state.State;
+import sui.state.StateAction;
+
+/**
+    Demonstrates the C++ bridge: Swift UI calling Haxe business logic.
+    The `greet` function runs in Haxe/C++, called from SwiftUI.
+**/
+class BridgeApp extends App {
+    static function main() {}
+
+    var result:State<String>;
+
+    public function new() {
+        super();
+        appName = "BridgeDemo";
+        bundleIdentifier = "com.haxeapple.bridgedemo";
+        result = new State<String>("Press a button!", "result");
+    }
+
+    /** Haxe business logic: generates a greeting. Runs in C++, called from Swift. **/
+    @:bridge
+    public static function greet(name:String):String {
+        return 'Hello, $name! (from Haxe/C++)';
+    }
+
+    /** Haxe business logic: computes fibonacci. **/
+    @:bridge
+    public static function fibonacci(n:Int):Int {
+        if (n <= 1) return n;
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+
+    override function body():View {
+        return new VStack(null, 20, [
+            new Text("Haxe ↔ Swift Bridge")
+                .font(FontStyle.LargeTitle),
+            Text.withState("{result}")
+                .font(FontStyle.Title2)
+                .padding(),
+            new Button("Greet from Haxe", null,
+                StateAction.CustomSwift('result = HaxeBridgeC.greet("World")')),
+            new Button("Fibonacci(20)", null,
+                StateAction.CustomSwift('result = "fib(20) = \\(HaxeBridgeC.fibonacci(20))"')),
+        ]);
+    }
+}

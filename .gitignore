@@ -1,0 +1,11 @@
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+*.o
+*.a
+*.n
+*.gch
+*.pch
+.DS_Store
+*.usdz
