@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Haxe
+        uses: kmaref/setup-haxe@v1
+        with:
+          haxe-version: 4.3.6
+
+      - name: Install hxcpp
+        run: |
+          haxelib install hxcpp --quiet
+          haxelib dev sui .
+
+      - name: Run tests
+        run: bash tests/run_tests.sh
