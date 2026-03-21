@@ -1260,14 +1260,12 @@ class SwiftGenerator {
                                     case "CustomSwift": p0 != null ? p0 : "// custom";
                                     case "BridgeCall":
                                         var fnName = if (args.length > 1) extractString(args[1]) else "unknown";
-                                        var fnArg = if (args.length > 2) extractString(args[2]) else null;
-                                        var argStr = fnArg != null ? '"${esc(fnArg)}"' : "";
+                                        var argStr = if (args.length > 2) extractBridgeArgs(args[2]) else "";
                                         'Task.detached { let r = HaxeBridgeC.${fnName}(${argStr}); await MainActor.run { ${p0} = r } }';
                                     case "BridgeCallLoading":
                                         var loadingVal = if (args.length > 1) extractString(args[1]) else "Loading...";
                                         var fnName = if (args.length > 2) extractString(args[2]) else "unknown";
-                                        var fnArg = if (args.length > 3) extractString(args[3]) else null;
-                                        var argStr = fnArg != null ? '"${esc(fnArg)}"' : "";
+                                        var argStr = if (args.length > 3) extractBridgeArgs(args[3]) else "";
                                         '${p0} = "${esc(loadingVal)}"; Task.detached { let r = HaxeBridgeC.${fnName}(${argStr}); await MainActor.run { ${p0} = r } }';
                                     default: null;
                                 }
@@ -1455,6 +1453,27 @@ class SwiftGenerator {
             case TCast(e, _): extractConstant(e);
             case TParenthesis(e): extractConstant(e);
             default: null;
+        }
+    }
+
+    /** Extract bridge call arguments: supports a single string or an array of constants. **/
+    static function extractBridgeArgs(expr:haxe.macro.Type.TypedExpr):String {
+        if (expr == null) return "";
+        var e = unwrap(expr);
+        switch (e.expr) {
+            case TArrayDecl(elements):
+                var parts:Array<String> = [];
+                for (el in elements) {
+                    var c = extractConstant(el);
+                    if (c != null) parts.push(c);
+                }
+                return parts.join(", ");
+            default:
+                var s = extractString(expr);
+                if (s != null) return '"${esc(s)}"';
+                var c = extractConstant(expr);
+                if (c != null) return c;
+                return "";
         }
     }
 
