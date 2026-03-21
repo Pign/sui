@@ -110,6 +110,7 @@ class SwiftGenerator {
         var bundleId = 'com.example.${className.toLowerCase()}';
         localBindings = new Map();
         needsRuntimeBridge = false;
+        needsHorizontalSizeClass = false;
         nextActionId = 0;
 
         // 1. Find State<T> fields
@@ -189,6 +190,9 @@ class SwiftGenerator {
                 viewSwift.add('    @State private var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
             if (stateDecls.length > 0) viewSwift.add("\n");
         }
+
+        if (needsHorizontalSizeClass)
+            viewSwift.add("    @Environment(\\.horizontalSizeClass) private var horizontalSizeClass\n\n");
 
         viewSwift.add("    var body: some View {\n");
 
@@ -351,6 +355,11 @@ class SwiftGenerator {
                     }
                 default:
             }
+        }
+
+        // In bridge/AppState mode, give components access to shared state
+        if (needsRuntimeBridge) {
+            buf.add("    @Bindable var appState = AppState.shared\n");
         }
 
         buf.add("\n");
@@ -666,6 +675,8 @@ class SwiftGenerator {
     static var localBindings:Map<Int, haxe.macro.Type.TypedExpr> = new Map();
     /** Tracks whether the current app needs the runtime bridge (has button closures). **/
     static var needsRuntimeBridge:Bool = false;
+    /** Tracks whether the current app uses AdaptiveStack (needs @Environment horizontalSizeClass). **/
+    static var needsHorizontalSizeClass:Bool = false;
     /** Counter for button action IDs (must match Button._nextActionId at runtime). **/
     static var nextActionId:Int = 0;
 
@@ -1054,6 +1065,25 @@ class SwiftGenerator {
                     buf.add('${pad}Section {\n');
                 for (child in children)
                     buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "AdaptiveStack":
+                needsHorizontalSizeClass = true;
+                var buf = new StringBuf();
+                buf.add('${pad}if horizontalSizeClass == .regular {\n');
+                buf.add('${pad}    NavigationSplitView {\n');
+                if (args.length > 0) buf.add(viewToSwift(args[0], indent + 2));
+                buf.add('${pad}    } detail: {\n');
+                if (args.length > 1) buf.add(viewToSwift(args[1], indent + 2));
+                buf.add('${pad}    }\n');
+                buf.add('${pad}} else {\n');
+                buf.add('${pad}    NavigationStack {\n');
+                buf.add('${pad}        VStack {\n');
+                if (args.length > 0) buf.add(viewToSwift(args[0], indent + 3));
+                if (args.length > 1) buf.add(viewToSwift(args[1], indent + 3));
+                buf.add('${pad}        }\n');
+                buf.add('${pad}    }\n');
                 buf.add('${pad}}\n');
                 return buf.toString();
 
