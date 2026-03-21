@@ -27,29 +27,33 @@ enum StateAction {
         Call a @:bridge function asynchronously and assign the result to a state variable.
         Runs in a Swift Task so the UI stays responsive.
 
-        Usage: BridgeCall("resultState", "bridgeFunctionName", "arg")
+        Single arg:  BridgeCall("result", "greet", "World")
+        Multi arg:   BridgeCall("result", "doLogin", ["url", "email", "pass"])
 
         Generates:
         ```swift
-        Task { @MainActor in
-            resultState = HaxeBridgeC.bridgeFunctionName("arg")
+        Task.detached {
+            let r = HaxeBridgeC.greet("World")
+            await MainActor.run { result = r }
         }
         ```
     **/
-    BridgeCall(stateName:String, functionName:String, arg:String);
+    BridgeCall(stateName:String, functionName:String, args:Dynamic);
 
     /**
         Like BridgeCall but sets a loading value immediately before the async call.
 
-        Usage: BridgeCallLoading("resultState", "Loading...", "fetchData", "https://url")
+        Single arg:  BridgeCallLoading("result", "Loading...", "fetchData", "https://url")
+        Multi arg:   BridgeCallLoading("result", "Loading...", "doLogin", ["url", "email", "pass"])
 
         Generates:
         ```swift
-        resultState = "Loading..."
-        Task { @MainActor in
-            resultState = HaxeBridgeC.fetchData("https://url")
+        result = "Loading..."
+        Task.detached {
+            let r = HaxeBridgeC.doLogin("url", "email", "pass")
+            await MainActor.run { result = r }
         }
         ```
     **/
-    BridgeCallLoading(stateName:String, loadingValue:String, functionName:String, arg:String);
+    BridgeCallLoading(stateName:String, loadingValue:String, functionName:String, args:Dynamic);
 }

@@ -110,11 +110,15 @@ new Button("Greet", () -> {
 ### With BridgeCall
 
 ```haxe
-// With @:bridge
+// Single argument
 new Button("Greet", null,
     StateAction.BridgeCall("result", "greet", "World"))
 
-// Without @:bridge
+// Multiple arguments
+new Button("Login", null,
+    StateAction.BridgeCall("result", "doLogin", ["https://api.example.com", "user@email.com", "pass123"]))
+
+// Without @:bridge — same logic via closure
 new Button("Greet", () -> result.set(greet("World")))
 ```
 
@@ -123,21 +127,16 @@ new Button("Greet", () -> result.set(greet("World")))
 For slow operations, show a loading state while the bridge call runs:
 
 ```haxe
-// With @:bridge — framework handles loading state and async
+// Single argument
 new Button("Fetch Data", null,
     StateAction.BridgeCallLoading("result", "Loading...", "fetchUrl", "https://example.com"))
 
-// Without @:bridge — handle loading state yourself in a closure
-new Button("Fetch Data", () -> {
-    result.set("Loading...");
-    var http = new haxe.Http("https://example.com");
-    http.onData = (d) -> result.set(d.length > 500 ? d.substr(0, 500) + "..." : d);
-    http.onError = (e) -> result.set("Error: " + e);
-    http.request(false);
-})
+// Multiple arguments
+new Button("Login", null,
+    StateAction.BridgeCallLoading("result", "Logging in...", "doLogin", ["https://api.example.com", "user@email.com", "pass123"]))
 ```
 
-The `@:bridge` + `BridgeCallLoading` version generates Swift that wraps the call in a `Task { @MainActor in }`, giving you loading state for free. The closure version does the same thing manually.
+The `BridgeCallLoading` version sets the loading text immediately, then runs the bridge call in a background task and updates the state when done.
 
 ## How It Works
 
