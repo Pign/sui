@@ -308,11 +308,19 @@ class SwiftGenerator {
         buf.add("\n    func set(_ key: String, _ value: String) {\n");
         buf.add("        switch key {\n");
         for (sd in stateDecls) {
-            switch (sd.swiftType) {
-                case "Int": buf.add('        case "${sd.name}": ${sd.name} = Int(value) ?? 0\n');
-                case "Double": buf.add('        case "${sd.name}": ${sd.name} = Double(value) ?? 0.0\n');
-                case "Bool": buf.add('        case "${sd.name}": ${sd.name} = value == "true"\n');
-                default: buf.add('        case "${sd.name}": ${sd.name} = value\n');
+            if (sd.swiftType.startsWith("[") && sd.swiftType.endsWith("]")) {
+                buf.add('        case "${sd.name}":\n');
+                buf.add('            if let data = value.data(using: .utf8),\n');
+                buf.add('               let arr = try? JSONSerialization.jsonObject(with: data) as? ${sd.swiftType} {\n');
+                buf.add('                ${sd.name} = arr\n');
+                buf.add('            }\n');
+            } else {
+                switch (sd.swiftType) {
+                    case "Int": buf.add('        case "${sd.name}": ${sd.name} = Int(value) ?? 0\n');
+                    case "Double": buf.add('        case "${sd.name}": ${sd.name} = Double(value) ?? 0.0\n');
+                    case "Bool": buf.add('        case "${sd.name}": ${sd.name} = value == "true"\n');
+                    default: buf.add('        case "${sd.name}": ${sd.name} = value\n');
+                }
             }
         }
         buf.add("        default: break\n");

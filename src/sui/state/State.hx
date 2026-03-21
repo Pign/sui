@@ -62,7 +62,12 @@ class State<T> {
         }
         #if cpp
         var k = name;
-        var v = Std.string(newValue);
+        var v:String;
+        if (Std.isOfType(newValue, Array)) {
+            v = haxe.Json.stringify(newValue);
+        } else {
+            v = Std.string(newValue);
+        }
         untyped __cpp__('_hxsui_notify_swift({0}.utf8_str(), {1}.utf8_str())', k, v);
         #end
         return newValue;
