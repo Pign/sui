@@ -82,7 +82,7 @@ fi
 echo ""
 echo "--- Test 7: CLI compilation ---"
 cd ..
-if haxe -cp tools -cp src -main tools.cli.CLI -neko /private/tmp/claude/cli_test.n 2>&1; then
+if haxe -cp tools -cp src -main tools.cli.CLI -neko "${TMPDIR:-/tmp}/cli_test.n" 2>&1; then
     echo "PASS: CLI compiles"
     PASS=$((PASS + 1))
 else
