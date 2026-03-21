@@ -1343,7 +1343,8 @@ class SwiftGenerator {
                  "disabled" | "overlay" | "shadow" | "lineLimit" | "textFieldStyle" |
                  "toggleStyle" | "pickerStyle" | "scrollIndicators" |
                  "sheet" | "alert" | "confirmationDialog" | "searchable" | "toolbar" | "animation" |
-                 "onAppear" | "onDisappear" | "task" | "navigationDestination":
+                 "onAppear" | "onDisappear" | "task" | "navigationDestination" |
+                 "onTapGesture":
                 true;
             default: false;
         }
@@ -1415,6 +1416,14 @@ class SwiftGenerator {
             case "task":
                 needsRuntimeBridge = true;
                 'task { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) }';
+
+            case "onTapGesture":
+                // Extract the StateAction from the argument
+                var actionCode = if (args.length > 0) stateActionToSwift(args[0]) else null;
+                if (actionCode != null)
+                    'onTapGesture { ${actionCode} }';
+                else
+                    'onTapGesture { }';
 
             // --- Content-bearing modifiers ---
             case "sheet":

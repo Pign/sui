@@ -141,6 +141,12 @@ class View {
         return this;
     }
 
+    /** Add a tap gesture with a declarative StateAction. **/
+    public function onTapGesture(action:sui.state.StateAction):View {
+        modifierChain.push(ViewModifier.OnTapGesture(action));
+        return this;
+    }
+
     /** Run a closure when the view appears. Runs in Haxe via the bridge. **/
     public function onAppear(action:() -> Void):View {
         var actionId = sui.ui.Button._nextActionId++;

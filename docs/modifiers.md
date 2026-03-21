@@ -119,6 +119,24 @@ new VStack([...])
 |----------|-----------|-------------|
 | `.animation(value)` | `value: String` | Animation curve (e.g. `"default"`, `"easeIn"`, `"spring"`) |
 
+## Gestures
+
+| Modifier | Parameters | Description |
+|----------|-----------|-------------|
+| `.onTapGesture(action)` | `action: StateAction` | Runs a StateAction when tapped |
+
+```haxe
+// Set state on tap
+new Text("Select me")
+    .onTapGesture(StateAction.SetValue("selected", "true"))
+
+// Use with ForEach for interactive lists
+new ForEach("items", "i",
+    new Text("{items[i].name}")
+        .onTapGesture(StateAction.SetValue("selectedItem", "{items[i].id}"))
+)
+```
+
 ## Lifecycle
 
 | Modifier | Parameters | Description |
