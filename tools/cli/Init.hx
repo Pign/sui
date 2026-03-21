@@ -22,6 +22,7 @@ class Init {
         // Create directory structure
         FileSystem.createDirectory(projectDir);
         FileSystem.createDirectory('$projectDir/src');
+        FileSystem.createDirectory('$projectDir/swift');
 
         // Create sui.json
         // Try auto-detecting team ID for device builds

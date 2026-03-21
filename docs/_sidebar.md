@@ -15,6 +15,7 @@
   - [Observable](state/observable.md)
 - [Components](components.md)
 - [Bridge](bridge.md)
+- [Native Extensions](native-extensions.md)
 - [CLI Reference](cli.md)
 - [Platforms](platforms.md)
 - [Metadata](metadata.md)

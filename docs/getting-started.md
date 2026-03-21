@@ -21,8 +21,9 @@ This scaffolds a ready-to-build project:
 MyApp/
   src/
     MyApp.hx          # Your app entry point
+  swift/               # Custom Swift files (optional)
   build.hxml           # Haxe build configuration
-  project.yml          # Xcode project spec (xcodegen)
+  sui.json             # Project configuration
 ```
 
 ## Write Your App
