@@ -56,6 +56,8 @@ enum ViewModifier {
     OnAppear(actionId:Int);
     OnDisappear(actionId:Int);
     TaskOnAppear(actionId:Int);
+    OnAppearAction(action:sui.state.StateAction);
+    TaskAction(action:sui.state.StateAction);
 
     // Gestures
     OnTapGesture(action:sui.state.StateAction);

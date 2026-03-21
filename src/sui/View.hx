@@ -165,6 +165,18 @@ class View {
         return this;
     }
 
+    /** Run a StateAction when the view appears. **/
+    public function onAppearAction(action:sui.state.StateAction):View {
+        modifierChain.push(ViewModifier.OnAppearAction(action));
+        return this;
+    }
+
+    /** Run a StateAction as an async task when the view appears. **/
+    public function taskAction(action:sui.state.StateAction):View {
+        modifierChain.push(ViewModifier.TaskAction(action));
+        return this;
+    }
+
     /** Run a closure when the view appears. Runs in Haxe via the bridge. **/
     public function onAppear(action:() -> Void):View {
         var actionId = sui.ui.Button._nextActionId++;
