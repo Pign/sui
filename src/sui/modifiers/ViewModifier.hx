@@ -60,6 +60,11 @@ enum ViewModifier {
     // Gestures
     OnTapGesture(action:sui.state.StateAction);
 
+    // Appearance
+    Tint(color:ColorValue);
+    Badge(value:Dynamic);
+    Tag(value:String);
+
     // Spacing
     FixedSize(horizontal:Bool, vertical:Bool);
 }

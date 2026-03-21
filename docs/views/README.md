@@ -18,6 +18,7 @@ sui provides 22 built-in views that map directly to SwiftUI components.
 | `Button` | Control | `Button` | Tappable action |
 | `TextField` | Control | `TextField` | Text input |
 | `SecureField` | Control | `SecureField` | Password input |
+| `TextEditor` | Control | `TextEditor` | Multi-line text input |
 | `Toggle` | Control | `Toggle` | Boolean switch |
 | `Slider` | Control | `Slider` | Range input |
 | `Picker` | Control | `Picker` | Selection control |

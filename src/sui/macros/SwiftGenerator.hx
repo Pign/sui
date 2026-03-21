@@ -1344,7 +1344,7 @@ class SwiftGenerator {
                  "toggleStyle" | "pickerStyle" | "scrollIndicators" |
                  "sheet" | "alert" | "confirmationDialog" | "searchable" | "toolbar" | "animation" |
                  "onAppear" | "onDisappear" | "task" | "navigationDestination" |
-                 "onTapGesture":
+                 "onTapGesture" | "tint" | "badge" | "tag":
                 true;
             default: false;
         }
@@ -1466,6 +1466,20 @@ class SwiftGenerator {
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
                 'overlay {\n${contentSwift}${pad}}';
+            case "tint":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'tint(.${e != null ? camel(e) : "accentColor"})';
+            case "badge":
+                var v = if (args.length > 0) extractConstant(args[0]) else null;
+                if (v != null)
+                    'badge($v)';
+                else {
+                    var s = if (args.length > 0) extractString(args[0]) else null;
+                    s != null ? 'badge(${s})' : "badge(0)";
+                }
+            case "tag":
+                var s = if (args.length > 0) extractString(args[0]) else null;
+                s != null ? 'tag("${esc(s)}")' : 'tag("")';
             default:
                 // Generic: try to pass through args
                 if (args.length == 0) '${name}()';

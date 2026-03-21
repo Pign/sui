@@ -147,6 +147,24 @@ class View {
         return this;
     }
 
+    /** Set the tint/accent color for this view and its children. **/
+    public function tint(color:ColorValue):View {
+        modifierChain.push(ViewModifier.Tint(color));
+        return this;
+    }
+
+    /** Add a badge to a tab item or list row. **/
+    public function badge(value:Dynamic):View {
+        modifierChain.push(ViewModifier.Badge(value));
+        return this;
+    }
+
+    /** Tag a view with a value for use in Picker selection. **/
+    public function tag(value:String):View {
+        modifierChain.push(ViewModifier.Tag(value));
+        return this;
+    }
+
     /** Run a closure when the view appears. Runs in Haxe via the bridge. **/
     public function onAppear(action:() -> Void):View {
         var actionId = sui.ui.Button._nextActionId++;
