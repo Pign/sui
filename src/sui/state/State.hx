@@ -15,7 +15,7 @@ extern "C" void haxe_bridge_register_state_fn(void (*cb)(const char*, const char
     _hxsui_state_callback = cb;
 }
 
-static void _hxsui_notify_swift(const char* key, const char* value) {
+void _hxsui_notify_swift(const char* key, const char* value) {
     if (_hxsui_state_callback) _hxsui_state_callback(key, value);
 }
 ')
