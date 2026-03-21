@@ -22,7 +22,7 @@ class FetchApp extends App {
         bundleIdentifier = "com.sui.asyncfetch";
     }
 
-    @:bridge
+    @:expose
     public static function fetchUrl(url:String):String {
         var http = new haxe.Http(url);
         var data = "";
@@ -59,7 +59,7 @@ class FetchApp extends App {
 ### Bridge Function with HTTP
 
 ```haxe
-@:bridge
+@:expose
 public static function fetchUrl(url:String):String {
     var http = new haxe.Http(url);
     // ...
@@ -68,9 +68,9 @@ public static function fetchUrl(url:String):String {
 }
 ```
 
-The `@:bridge` annotation is needed here because `BridgeCallLoading` calls the function by name from Swift as `HaxeBridgeC.fetchUrl()`.
+The `@:expose` annotation is needed here because `BridgeCallLoading` calls the function by name from Swift as `HaxeBridgeC.fetchUrl()`.
 
-**Without @:bridge**, the same logic works via a closure:
+**Without @:expose**, the same logic works via a closure:
 
 ```haxe
 // No annotation needed
@@ -90,7 +90,7 @@ new Button("Fetch example.com", () -> {
 })
 ```
 
-### BridgeCallLoading (requires @:bridge)
+### BridgeCallLoading (requires @:expose)
 
 ```haxe
 StateAction.BridgeCallLoading("result", "Loading...", "fetchUrl", "https://example.com")
@@ -102,7 +102,7 @@ This generates Swift code that:
 2. Wraps the bridge call in a `Task { @MainActor in ... }` (async)
 3. When the bridge call completes, sets `result` to the return value
 
-**Without @:bridge (closure equivalent):**
+**Without @:expose (closure equivalent):**
 
 ```haxe
 new Button("Fetch example.com", () -> {
@@ -114,7 +114,7 @@ new Button("Fetch example.com", () -> {
 })
 ```
 
-The `@:bridge` + `BridgeCallLoading` version is more concise and handles the async wrapping for you. The closure version gives you full control but requires managing the loading state manually.
+The `@:expose` + `BridgeCallLoading` version is more concise and handles the async wrapping for you. The closure version gives you full control but requires managing the loading state manually.
 
 **Parameters (BridgeCallLoading):**
 

@@ -76,7 +76,7 @@ StateAction.CustomSwift('if !text.isEmpty { items.append(Item(title: text)); tex
 
 ### Bridge Calls
 
-Call `@:bridge` functions from Swift:
+Call `@:expose` functions from Swift:
 
 ```haxe
 // Synchronous

@@ -1,6 +1,6 @@
 # Bridge Demo
 
-Demonstrates the explicit `@:bridge` annotation for exposing named Haxe functions to Swift. Note that most bridging (closures, `@:state` updates, lifecycle handlers) is automatic and needs no annotation &mdash; `@:bridge` is only for named function exports.
+Demonstrates the explicit `@:expose` annotation for exposing named Haxe functions to Swift. Note that most bridging (closures, `@:state` updates, lifecycle handlers) is automatic and needs no annotation &mdash; `@:expose` is only for named function exports.
 
 ## Full Source
 
@@ -22,12 +22,12 @@ class BridgeApp extends App {
         bundleIdentifier = "com.sui.bridgedemo";
     }
 
-    @:bridge
+    @:expose
     public static function greet(name:String):String {
         return 'Hello, $name! (from Haxe/C++)';
     }
 
-    @:bridge
+    @:expose
     public static function fibonacci(n:Int):Int {
         if (n <= 1) return n;
         return fibonacci(n - 1) + fibonacci(n - 2);
@@ -54,15 +54,15 @@ class BridgeApp extends App {
 ### Defining Bridge Functions
 
 ```haxe
-@:bridge
+@:expose
 public static function greet(name:String):String {
     return 'Hello, $name! (from Haxe/C++)';
 }
 ```
 
-`@:bridge` tells the framework to generate a named Swift-callable wrapper as `HaxeBridgeC.greet()`. This is needed here because we want to call the function by name from `StateAction.CustomSwift` and get a return value.
+`@:expose` tells the framework to generate a named Swift-callable wrapper as `HaxeBridgeC.greet()`. This is needed here because we want to call the function by name from `StateAction.CustomSwift` and get a return value.
 
-**Without @:bridge**, the same logic works via a closure:
+**Without @:expose**, the same logic works via a closure:
 
 ```haxe
 // No annotation needed — closure is bridged automatically
@@ -77,41 +77,41 @@ new Button("Greet from Haxe", () -> {
 
 ### Calling from SwiftUI
 
-**With @:bridge** &mdash; call by name in a Swift expression:
+**With @:expose** &mdash; call by name in a Swift expression:
 
 ```haxe
 new Button("Greet from Haxe", null,
     StateAction.CustomSwift('result = HaxeBridgeC.greet("World")'))
 ```
 
-**Without @:bridge** &mdash; use a closure instead:
+**Without @:expose** &mdash; use a closure instead:
 
 ```haxe
 new Button("Greet from Haxe", () -> result.value = greet("World"))
 ```
 
-Both produce the same result. The `@:bridge` version is useful when you need the return value in a `CustomSwift` expression or want to compose calls in Swift code.
+Both produce the same result. The `@:expose` version is useful when you need the return value in a `CustomSwift` expression or want to compose calls in Swift code.
 
 ### Multiple Bridge Functions
 
 ```haxe
-@:bridge
+@:expose
 public static function fibonacci(n:Int):Int {
     if (n <= 1) return n;
     return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-// With @:bridge:
+// With @:expose:
 new Button("Fibonacci(20)", null,
     StateAction.CustomSwift('result = "fib(20) = \\(HaxeBridgeC.fibonacci(20))"'))
 
-// Without @:bridge:
+// Without @:expose:
 new Button("Fibonacci(20)", () -> {
     result.value = "fib(20) = " + fibonacci(20);
 })
 ```
 
-Any number of `@:bridge` functions can be defined. They all become available as `HaxeBridgeC.functionName()` in Swift.
+Any number of `@:expose` functions can be defined. They all become available as `HaxeBridgeC.functionName()` in Swift.
 
 ## Run It
 
