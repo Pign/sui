@@ -13,9 +13,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Haxe
-        uses: kmaref/setup-haxe@v1
-        with:
-          haxe-version: 4.3.6
+        run: |
+          brew install haxe
+          mkdir -p ~/haxelib
+          haxelib setup ~/haxelib
 
       - name: Install hxcpp
         run: |
