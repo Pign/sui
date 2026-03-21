@@ -99,7 +99,29 @@ public static function calc(items:Array<Int>):Int {
 
 ## @:swiftView
 
-Marks a class as generating a SwiftUI View struct. Applied automatically to `ViewComponent` subclasses but can be used explicitly for advanced control.
+References a SwiftUI View struct by name. Use this to wrap a native SwiftUI view (defined in your `swift/` directory) so it can be used from Haxe.
+
+```haxe
+// swift/RatingStars.swift defines: struct RatingStars: View { let count: Int; ... }
+
+@:swiftView("RatingStars")
+class RatingStars extends View {
+    public var count:Int;
+    public function new(@:swiftLabel("count") count:Int) {
+        super();
+        this.count = count;
+    }
+}
+
+// Usage in body():
+new RatingStars(5)
+```
+
+**Generated Swift:** `RatingStars(count: 5)`
+
+No Swift struct is generated for `@:swiftView` classes &mdash; it references your existing native implementation. Also applied automatically to `ViewComponent` subclasses.
+
+See [Native Extensions](native-extensions.md) for full details.
 
 ## Summary
 
@@ -109,4 +131,4 @@ Marks a class as generating a SwiftUI View struct. Applied automatically to `Vie
 | `@:swiftBinding` | Component property / constructor param | Generate `@Binding var` |
 | `@:swiftLabel` | Constructor parameter | Set Swift argument label |
 | `@:swiftName` | Function / type | Override generated Swift name |
-| `@:swiftView` | Class | Mark as SwiftUI View struct |
+| `@:swiftView` | Class | Reference a native SwiftUI View by name |

@@ -168,6 +168,9 @@ class Build {
         // Copy runtime Swift files from sui library
         copyRuntimeFiles(buildDir);
 
+        // Copy user-provided Swift files from swift/ directory
+        copyUserSwiftFiles(cwd, buildDir);
+
         // Generate project.yml
         File.saveContent('$buildDir/project.yml', generateProjectYaml(config, platform, forDevice, isBridgeApp));
 
@@ -327,16 +330,36 @@ class Build {
         }
     }
 
+    static function copyUserSwiftFiles(cwd:String, buildDir:String) {
+        var swiftDir = '$cwd/swift';
+        if (FileSystem.exists(swiftDir)) {
+            for (file in FileSystem.readDirectory(swiftDir)) {
+                if (file.endsWith(".swift")) {
+                    File.copy('$swiftDir/$file', '$buildDir/Sources/$file');
+                }
+            }
+        }
+    }
+
     public static function readProjectConfig(cwd:String):ProjectConfig {
         var configPath = '$cwd/sui.json';
         if (FileSystem.exists(configPath)) {
             var content = File.getContent(configPath);
             var json = haxe.Json.parse(content);
+            var packages:Array<SwiftPackage> = null;
+            if (json.swiftPackages != null) {
+                packages = [];
+                var arr:Array<Dynamic> = json.swiftPackages;
+                for (pkg in arr) {
+                    packages.push({url: pkg.url, from: pkg.from, product: pkg.product});
+                }
+            }
             return {
                 appName: json.appName,
                 bundleIdentifier: json.bundleIdentifier,
                 bundleIdPrefix: json.bundleIdPrefix != null ? json.bundleIdPrefix : "com.example",
                 teamId: json.teamId,
+                swiftPackages: packages,
             };
         }
 
@@ -441,6 +464,14 @@ class Build {
             var stat = FileSystem.stat('$cwd/build.hxml');
             newestSource = Math.max(newestSource, stat.mtime.getTime());
         }
+        // Check sui.json
+        if (FileSystem.exists('$cwd/sui.json')) {
+            var stat = FileSystem.stat('$cwd/sui.json');
+            newestSource = Math.max(newestSource, stat.mtime.getTime());
+        }
+        // Check user Swift files
+        var userSwiftDir = '$cwd/swift';
+        if (FileSystem.exists(userSwiftDir)) newestSource = Math.max(newestSource, newestModTime(userSwiftDir, ".swift"));
 
         if (newestSource == 0) return false;
 
@@ -540,7 +571,18 @@ class Build {
 ';
         }
 
-        return 'name: ${config.appName}
+        var packagesBlock = "";
+        var depsBlock = "    dependencies: []\n";
+        if (config.swiftPackages != null && config.swiftPackages.length > 0) {
+            packagesBlock = "packages:\n";
+            depsBlock = "    dependencies:\n";
+            for (pkg in config.swiftPackages) {
+                packagesBlock += '  ${pkg.product}:\n    url: ${pkg.url}\n    from: ${pkg.from}\n';
+                depsBlock += '      - package: ${pkg.product}\n';
+            }
+        }
+
+        return '${packagesBlock}name: ${config.appName}
 options:
   bundleIdPrefix: ${config.bundleIdPrefix}
   deploymentTarget:
@@ -561,8 +603,7 @@ targets:
       INFOPLIST_KEY_UILaunchScreen_Generation: true
       INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
       INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
-$signing$bridge    dependencies: []
-';
+$signing$bridge$depsBlock';
     }
 }
 
@@ -571,4 +612,11 @@ typedef ProjectConfig = {
     bundleIdentifier:String,
     bundleIdPrefix:String,
     ?teamId:String,
+    ?swiftPackages:Array<SwiftPackage>,
+}
+
+typedef SwiftPackage = {
+    url:String,
+    from:String,
+    product:String,
 }
