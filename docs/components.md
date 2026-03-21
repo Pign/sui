@@ -82,7 +82,7 @@ class StarRating extends ViewComponent {
 Pass a state variable name to bind:
 
 ```haxe
-var movieRating:State<Int>;
+@:state var movieRating:Int = 3;
 
 // In body():
 new StarRating("Movie:", "movieRating")

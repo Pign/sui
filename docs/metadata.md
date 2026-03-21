@@ -6,7 +6,7 @@ sui uses Haxe metadata annotations to control Swift code generation.
 
 Exposes a named static function to Swift via the C++ bridge. This is only needed when you want to call a specific function by name from Swift expressions (e.g., in `StateAction.CustomSwift`, `BridgeCall`, or `BridgeCallLoading`).
 
-Most bridge interactions are **automatic** &mdash; button closures, `State.set()`, and lifecycle handlers work without any annotation.
+Most bridge interactions are **automatic** &mdash; button closures, `@:state` updates, and lifecycle handlers work without any annotation.
 
 **With @:bridge:**
 ```haxe
@@ -27,7 +27,7 @@ public static function greet(name:String):String {
 }
 
 // Call via closure — bridged automatically:
-new Button("Greet", () -> result.set(greet("World")))
+new Button("Greet", () -> result.value = greet("World"))
 ```
 
 **Generated Swift (with @:bridge):** `HaxeBridgeC.greet("World")`

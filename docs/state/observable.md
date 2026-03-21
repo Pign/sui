@@ -31,15 +31,14 @@ struct TodoItem: Identifiable, Hashable {
 
 ## Using with State
 
-Observable objects are stored in `State` arrays. SwiftUI re-renders automatically when the array or its elements change:
+Observable objects are stored in `@:state` arrays. SwiftUI re-renders automatically when the array or its elements change:
 
 ```haxe
 class TodoApp extends App {
-    var todos:State<Array<TodoItem>>;
+    @:state var todos:Array<TodoItem> = [];
 
     public function new() {
         super();
-        todos = new State<Array<TodoItem>>([], "todos");
     }
 
     override function body():View {
@@ -61,7 +60,7 @@ Mutating `todos[i].completed` directly in Swift triggers a re-render because the
 
 ## Key Points
 
-- Extend `Observable` for any data model used in `@State` arrays
+- Extend `Observable` for any data model used in `@:state` arrays
 - Public properties become Swift struct fields automatically
 - Reactivity comes from `@State` on the array &mdash; no manual change tracking required
 - Use `Text.withState("{array[index].property}")` to display properties

@@ -6,7 +6,7 @@ Bindings provide a two-way connection to a state variable. They're how child com
 
 | Haxe | SwiftUI |
 |------|---------|
-| `State<T>` in parent | `@State var value: T` |
+| `@:state var value:T` in parent | `@State var value: T` |
 | `@:swiftBinding` in component | `@Binding var value: T` |
 
 ## Using Bindings with ViewComponent
@@ -41,11 +41,10 @@ Use it in a parent app:
 
 ```haxe
 class MyApp extends App {
-    var movieRating:State<Int>;
+    @:state var movieRating:Int = 3;
 
     public function new() {
         super();
-        movieRating = new State<Int>(3, "movieRating");
     }
 
     override function body():View {
@@ -69,8 +68,8 @@ var binding = Binding.fromState(myState);
 
 // Create with custom getter/setter
 var binding = new Binding<String>(
-    () -> myState.get(),
-    (v) -> myState.set(v)
+    () -> myState.value,
+    (v) -> myState.value = v
 );
 ```
 
@@ -78,7 +77,7 @@ var binding = new Binding<String>(
 
 | Method | Description |
 |--------|-------------|
-| `Binding.fromState(state)` | Create a binding from a `State<T>` |
+| `Binding.fromState(state)` | Create a binding from a `@:state` variable |
 | `.value` | Read/write the bound value |
 
 ## Built-in Binding Parameters

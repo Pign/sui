@@ -9,10 +9,10 @@ Triggers an action when tapped.
 new Button("Increment", null, StateAction.Increment("count", 1))
 
 // With a Haxe closure (bridged automatically, no annotation needed)
-new Button("Say Hello", () -> myState.set("Hello!"))
+new Button("Say Hello", () -> myState.value = "Hello!")
 
 // With both (StateAction for Swift, closure for Haxe-side effects)
-new Button("+", () -> count.set(count.get() + 1), StateAction.Increment("count", 1))
+new Button("+", () -> count.value = count.value + 1, StateAction.Increment("count", 1))
 ```
 
 **Parameters:**
