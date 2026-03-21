@@ -1345,7 +1345,7 @@ class SwiftGenerator {
                  "sheet" | "alert" | "confirmationDialog" | "searchable" | "toolbar" | "animation" |
                  "onAppear" | "onDisappear" | "task" | "navigationDestination" |
                  "onTapGesture" | "tint" | "badge" | "tag" |
-                 "onAppearAction" | "taskAction":
+                 "onAppearAction" | "taskAction" | "toolbarItem":
                 true;
             default: false;
         }
@@ -1468,6 +1468,12 @@ class SwiftGenerator {
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
                 'toolbar {\n${contentSwift}${pad}}';
+            case "toolbarItem":
+                var placement = if (args.length > 0) extractString(args[0]) else "automatic";
+                var pad = ind(indent + 1);
+                var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 3) else "";
+                var pad2 = ind(indent + 2);
+                'toolbar {\n${pad}    ToolbarItem(placement: .${placement}) {\n${contentSwift}${pad2}}\n${pad}}';
             case "animation":
                 var value = if (args.length > 0) extractString(args[0]) else null;
                 if (value != null)

@@ -47,6 +47,7 @@ enum ViewModifier {
     // Search & Toolbar
     Searchable(textBinding:String, prompt:Null<String>);
     Toolbar(content:sui.View);
+    ToolbarItem(placement:String, content:sui.View);
     Overlay(content:sui.View);
 
     // Animation

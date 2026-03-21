@@ -125,6 +125,12 @@ class View {
         return this;
     }
 
+    /** Add a toolbar item with a specific placement. **/
+    public function toolbarItem(placement:String, content:View):View {
+        modifierChain.push(ViewModifier.ToolbarItem(placement, content));
+        return this;
+    }
+
     public function animation(value:String):View {
         modifierChain.push(ViewModifier.Animation(value));
         return this;
