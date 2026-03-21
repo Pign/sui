@@ -41,15 +41,20 @@ class StateMacro {
             }
 
             // Extract the original type and default value
-            var origType = field.kind.match(FVar(t, _)) ? field.kind.getParameters()[0] : null;
-            var defaultExpr = field.kind.match(FVar(_, e)) ? field.kind.getParameters()[1] : null;
+            var origType:Null<ComplexType> = null;
+            var defaultExpr:Null<Expr> = null;
+            switch (field.kind) {
+                case FVar(t, e):
+                    origType = t;
+                    defaultExpr = e;
+                default:
+            }
 
             if (origType == null) {
                 Context.error("@:state fields must have an explicit type", field.pos);
                 continue;
             }
 
-            // Default value fallback
             if (defaultExpr == null) {
                 defaultExpr = macro null;
             }
