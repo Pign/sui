@@ -182,7 +182,7 @@ class SwiftGenerator {
 
         if (needsRuntimeBridge && stateDecls.length > 0) {
             // Bridged mode: use AppState observable
-            viewSwift.add("    var appState = AppState.shared\n\n");
+            viewSwift.add("    @Bindable var appState = AppState.shared\n\n");
         } else {
             // Standalone mode: use @State
             for (sd in stateDecls)
@@ -195,13 +195,21 @@ class SwiftGenerator {
         if (needsRuntimeBridge && stateDecls.length > 0) {
             // Replace state variable references with appState.name
             var bodyWithAppState = bodySwift;
+            // Use placeholders to avoid cascading replacements
+            var placeholder = "__APPSTATE__";
             for (sd in stateDecls) {
-                // Replace $name (binding) with $appState.name
-                bodyWithAppState = StringTools.replace(bodyWithAppState, '$$$${sd.name}', '$$appState.${sd.name}');
-                // Replace bare name references in interpolation (already correct: \(name) → \(appState.name))
-                // We need to be careful to only replace in Swift interpolation contexts
-                bodyWithAppState = StringTools.replace(bodyWithAppState, '\\(${sd.name})', '\\(appState.${sd.name})');
+                var n = sd.name;
+                // Replace $name (Swift binding) with $__APPSTATE__name
+                bodyWithAppState = StringTools.replace(bodyWithAppState, "$" + n, "$" + placeholder + n);
+                // Replace \(name) (Swift string interpolation) with \(__APPSTATE__name)
+                bodyWithAppState = StringTools.replace(bodyWithAppState, '\\(' + n + ')', '\\(' + placeholder + n + ')');
+                // Replace {name} in bridge call args with __APPSTATE__interpolation
+                bodyWithAppState = StringTools.replace(bodyWithAppState, "{" + n + "}", '\\(' + placeholder + n + ')');
+                // Replace bare "name = " (assignment in closures) with __APPSTATE__name =
+                bodyWithAppState = StringTools.replace(bodyWithAppState, n + " = ", placeholder + n + " = ");
             }
+            // Now resolve all placeholders to "appState."
+            bodyWithAppState = StringTools.replace(bodyWithAppState, placeholder, "appState.");
             viewSwift.add(bodyWithAppState);
         } else {
             viewSwift.add(bodySwift);
@@ -466,6 +474,8 @@ class SwiftGenerator {
             var cParams = [for (p in fn.params) '${swiftTypeToCType(p.swiftType)} ${p.name}'];
             if (cParams.length == 0) cParams.push("void");
             buf.add('${swiftTypeToCType(fn.returnType)} haxe_bridge_${fn.name}(${cParams.join(", ")}) {\n');
+            buf.add("    int _gc_dummy = 0;\n");
+            buf.add("    hx::SetTopOfStack(&_gc_dummy, true);\n");
 
             // Build hxcpp call arguments
             var hxArgs:Array<String> = [];
@@ -483,21 +493,28 @@ class SwiftGenerator {
 
             switch (fn.returnType) {
                 case "String":
-                    // Return hxcpp string as C string via static buffer
                     buf.add('    ::String _hx_result = $call;\n');
-                    buf.add("    static char _buf[4096];\n");
+                    buf.add("    static thread_local char _buf[4096];\n");
                     buf.add("    const char* _cstr = _hx_result.__CStr();\n");
                     buf.add("    strncpy(_buf, _cstr, sizeof(_buf) - 1);\n");
                     buf.add("    _buf[sizeof(_buf) - 1] = 0;\n");
+                    buf.add("    hx::SetTopOfStack((int*)0, true);\n");
                     buf.add("    return _buf;\n");
                 case "Int":
-                    buf.add('    return (int32_t)$call;\n');
+                    buf.add('    int32_t _ret = (int32_t)$call;\n');
+                    buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+                    buf.add("    return _ret;\n");
                 case "Double" | "Float":
-                    buf.add('    return (double)$call;\n');
+                    buf.add('    double _ret = (double)$call;\n');
+                    buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+                    buf.add("    return _ret;\n");
                 case "Bool":
-                    buf.add('    return (bool)$call;\n');
+                    buf.add('    bool _ret = (bool)$call;\n');
+                    buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+                    buf.add("    return _ret;\n");
                 default:
                     buf.add('    $call;\n');
+                    buf.add("    hx::SetTopOfStack((int*)0, true);\n");
             }
 
             buf.add("}\n\n");
@@ -1245,13 +1262,13 @@ class SwiftGenerator {
                                         var fnName = if (args.length > 1) extractString(args[1]) else "unknown";
                                         var fnArg = if (args.length > 2) extractString(args[2]) else null;
                                         var argStr = fnArg != null ? '"${esc(fnArg)}"' : "";
-                                        'Task { @MainActor in ${p0} = HaxeBridgeC.${fnName}(${argStr}) }';
+                                        'Task.detached { let r = HaxeBridgeC.${fnName}(${argStr}); await MainActor.run { ${p0} = r } }';
                                     case "BridgeCallLoading":
                                         var loadingVal = if (args.length > 1) extractString(args[1]) else "Loading...";
                                         var fnName = if (args.length > 2) extractString(args[2]) else "unknown";
                                         var fnArg = if (args.length > 3) extractString(args[3]) else null;
                                         var argStr = fnArg != null ? '"${esc(fnArg)}"' : "";
-                                        '${p0} = "${esc(loadingVal)}"; Task { @MainActor in ${p0} = HaxeBridgeC.${fnName}(${argStr}) }';
+                                        '${p0} = "${esc(loadingVal)}"; Task.detached { let r = HaxeBridgeC.${fnName}(${argStr}); await MainActor.run { ${p0} = r } }';
                                     default: null;
                                 }
                             default:
@@ -1500,7 +1517,7 @@ class SwiftGenerator {
             case "Double" | "Float": "0.0";
             case "Bool": "false";
             case "String": '""';
-            default: '\${swiftType}()';
+            default: swiftType + "()";
         }
     }
 
