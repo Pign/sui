@@ -978,6 +978,60 @@ class SwiftGenerator {
                 buf.add('${pad}}\n');
                 return buf.toString();
 
+            case "ConditionalView":
+                // args: stateName, trueView, falseView (optional)
+                // or: stateName, matchValue (string), matchView, elseView (optional)
+                var stateName = if (args.length > 0) extractString(args[0]) else "condition";
+                var buf = new StringBuf();
+
+                // Detect string equality mode: 4 args where arg[1] is a string constant (not a view)
+                var isStringMatch = false;
+                if (args.length >= 3) {
+                    var maybeStr = extractString(args[1]);
+                    // Check if arg[1] is a plain string constant (not a view constructor)
+                    if (maybeStr != null) {
+                        var u1 = unwrap(args[1]);
+                        switch (u1.expr) {
+                            case TConst(TString(_)): isStringMatch = true;
+                            default:
+                        }
+                    }
+                }
+
+                if (isStringMatch) {
+                    var matchVal = extractString(args[1]);
+                    buf.add('${pad}if ${stateName} == "${esc(matchVal)}" {\n');
+                    buf.add(viewToSwift(args[2], indent + 1));
+                    buf.add('${pad}}');
+                    if (args.length > 3) {
+                        var uElse = unwrap(args[3]);
+                        switch (uElse.expr) {
+                            case TConst(TNull):
+                            default:
+                                buf.add(' else {\n');
+                                buf.add(viewToSwift(args[3], indent + 1));
+                                buf.add('${pad}}');
+                        }
+                    }
+                    buf.add('\n');
+                } else {
+                    buf.add('${pad}if ${stateName} {\n');
+                    if (args.length > 1) buf.add(viewToSwift(args[1], indent + 1));
+                    buf.add('${pad}}');
+                    if (args.length > 2) {
+                        var uElse = unwrap(args[2]);
+                        switch (uElse.expr) {
+                            case TConst(TNull):
+                            default:
+                                buf.add(' else {\n');
+                                buf.add(viewToSwift(args[2], indent + 1));
+                                buf.add('${pad}}');
+                        }
+                    }
+                    buf.add('\n');
+                }
+                return buf.toString();
+
             case "Section":
                 var header:String = null;
                 var children:Array<haxe.macro.Type.TypedExpr> = [];
