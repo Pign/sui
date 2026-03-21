@@ -17,7 +17,7 @@ class ModifiersApp extends App {
     public function new() {
         super();
         appName = "Modifiers";
-        bundleIdentifier = "com.haxeapple.modifiers";
+        bundleIdentifier = "com.sui.modifiers";
         username = new State<String>("", "username");
         notifications = new State<Bool>(true, "notifications");
         volume = new State<Float>(0.5, "volume");

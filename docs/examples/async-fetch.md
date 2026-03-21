@@ -19,7 +19,7 @@ class FetchApp extends App {
     public function new() {
         super();
         appName = "AsyncFetch";
-        bundleIdentifier = "com.haxeapple.asyncfetch";
+        bundleIdentifier = "com.sui.asyncfetch";
         result = new State<String>("Press a button to fetch data", "result");
     }
 

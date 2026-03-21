@@ -13,7 +13,7 @@ class ComponentsApp extends App {
     public function new() {
         super();
         appName = "Components";
-        bundleIdentifier = "com.haxeapple.components";
+        bundleIdentifier = "com.sui.components";
         movieRating = new State<Int>(3, "movieRating");
         bookRating = new State<Int>(4, "bookRating");
     }

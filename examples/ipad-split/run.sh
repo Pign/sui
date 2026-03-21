@@ -3,7 +3,7 @@ set -e
 
 PLATFORM="${1:-ios}"
 APP_NAME="SplitView"
-BUNDLE_ID="com.haxeapple.ipadsplit"
+BUNDLE_ID="com.sui.ipadsplit"
 DEVICE="${2:-iPad Pro (11-inch) (4th generation)}"
 
 echo "==> [1/4] Compiling Haxe (generates C++ & Swift)..."
@@ -27,7 +27,7 @@ fi
 cat > build/ios/project.yml << YAML
 name: $APP_NAME
 options:
-  bundleIdPrefix: com.haxeapple
+  bundleIdPrefix: com.sui
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "15.0"

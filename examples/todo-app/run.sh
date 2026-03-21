@@ -3,7 +3,7 @@ set -e
 
 PLATFORM="${1:-macos}"
 APP_NAME="TodoList"
-BUNDLE_ID="com.haxeapple.todoapp"
+BUNDLE_ID="com.sui.todoapp"
 
 echo "==> [1/4] Compiling Haxe (generates C++ & Swift)..."
 haxe build.hxml
@@ -19,7 +19,7 @@ fi
 cat > build/$PLATFORM/project.yml << YAML
 name: $APP_NAME
 options:
-  bundleIdPrefix: com.haxeapple
+  bundleIdPrefix: com.sui
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "15.0"

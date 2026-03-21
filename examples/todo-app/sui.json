@@ -1,0 +1,5 @@
+{
+    "appName": "TodoList",
+    "bundleIdentifier": "com.sui.todoapp",
+    "bundleIdPrefix": "com.sui"
+}

@@ -16,7 +16,7 @@ class BridgeApp extends App {
     public function new() {
         super();
         appName = "BridgeDemo";
-        bundleIdentifier = "com.haxeapple.bridgedemo";
+        bundleIdentifier = "com.sui.bridgedemo";
         result = new State<String>("Press a button!", "result");
     }
 

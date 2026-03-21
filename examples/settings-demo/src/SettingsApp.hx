@@ -14,7 +14,7 @@ class SettingsApp extends App {
     public function new() {
         super();
         appName = "Settings";
-        bundleIdentifier = "com.haxeapple.settings";
+        bundleIdentifier = "com.sui.settings";
         username = new State<String>("", "username");
         brightness = new State<Float>(0.5, "brightness");
         darkMode = new State<Bool>(false, "darkMode");

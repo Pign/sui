@@ -13,7 +13,7 @@ class TabsApp extends App {
     public function new() {
         super();
         appName = "MyTabs";
-        bundleIdentifier = "com.haxeapple.iostabs";
+        bundleIdentifier = "com.sui.iostabs";
         taskCount = new State<Int>(0, "taskCount");
         notesText = new State<String>("", "notesText");
     }

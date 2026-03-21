@@ -12,7 +12,7 @@ class SplitApp extends App {
     public function new() {
         super();
         appName = "SplitView";
-        bundleIdentifier = "com.haxeapple.ipadsplit";
+        bundleIdentifier = "com.sui.ipadsplit";
         selectedItem = new State<String>("Welcome", "selectedItem");
     }
 

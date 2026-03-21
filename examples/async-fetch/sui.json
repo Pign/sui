@@ -1,0 +1,5 @@
+{
+    "appName": "AsyncFetch",
+    "bundleIdentifier": "com.sui.asyncfetch",
+    "bundleIdPrefix": "com.sui"
+}

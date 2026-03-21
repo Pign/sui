@@ -12,7 +12,7 @@ class CounterApp extends App {
     public function new() {
         super();
         appName = "Counter";
-        bundleIdentifier = "com.haxeapple.counter";
+        bundleIdentifier = "com.sui.counter";
         count = new State<Int>(0, "count");
     }
 

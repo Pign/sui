@@ -9,7 +9,7 @@ class CubeApp extends App {
     public function new() {
         super();
         appName = "VisionCube";
-        bundleIdentifier = "com.haxeapple.visionoscube";
+        bundleIdentifier = "com.sui.visionoscube";
     }
 
     override function body():View {

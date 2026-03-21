@@ -3,7 +3,7 @@ set -e
 
 PLATFORM="${1:-ios}"
 APP_NAME="MyTabs"
-BUNDLE_ID="com.haxeapple.iostabs"
+BUNDLE_ID="com.sui.iostabs"
 
 echo "==> [1/4] Compiling Haxe (generates C++ & Swift)..."
 haxe build.hxml
@@ -45,7 +45,7 @@ fi
 cat > build/$PLATFORM/project.yml << YAML
 name: $APP_NAME
 options:
-  bundleIdPrefix: com.haxeapple
+  bundleIdPrefix: com.sui
   deploymentTarget:
     $PLATFORM_KEY: "$DEPLOY_TARGET"
   xcodeVersion: "15.0"

@@ -1,0 +1,5 @@
+{
+    "appName": "HelloHaxe",
+    "bundleIdentifier": "com.sui.helloworld",
+    "bundleIdPrefix": "com.sui"
+}

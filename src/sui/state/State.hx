@@ -9,14 +9,14 @@ package sui.state;
 @:cppFileCode('
 // State notification function pointer — set by the bridge at init time.
 // When no bridge is linked, this stays null and set() is a no-op for Swift.
-static void (*_hxapple_state_callback)(const char* key, const char* value) = nullptr;
+static void (*_hxsui_state_callback)(const char* key, const char* value) = nullptr;
 
 extern "C" void haxe_bridge_register_state_fn(void (*cb)(const char*, const char*)) {
-    _hxapple_state_callback = cb;
+    _hxsui_state_callback = cb;
 }
 
-static void _hxapple_notify_swift(const char* key, const char* value) {
-    if (_hxapple_state_callback) _hxapple_state_callback(key, value);
+static void _hxsui_notify_swift(const char* key, const char* value) {
+    if (_hxsui_state_callback) _hxsui_state_callback(key, value);
 }
 ')
 #end
@@ -48,7 +48,7 @@ class State<T> {
         #if cpp
         var k = name;
         var v = Std.string(newValue);
-        untyped __cpp__('_hxapple_notify_swift({0}.utf8_str(), {1}.utf8_str())', k, v);
+        untyped __cpp__('_hxsui_notify_swift({0}.utf8_str(), {1}.utf8_str())', k, v);
         #end
     }
 

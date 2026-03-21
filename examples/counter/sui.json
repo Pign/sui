@@ -1,0 +1,5 @@
+{
+    "appName": "Counter",
+    "bundleIdentifier": "com.sui.counter",
+    "bundleIdPrefix": "com.sui"
+}

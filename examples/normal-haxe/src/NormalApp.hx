@@ -12,7 +12,7 @@ class NormalApp extends App {
     public function new() {
         super();
         appName = "NormalHaxe";
-        bundleIdentifier = "com.haxeapple.normalhaxe";
+        bundleIdentifier = "com.sui.normalhaxe";
         data = new State<String>("Loading on appear...", "data");
         status = new State<String>("", "status");
     }

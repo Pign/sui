@@ -79,8 +79,8 @@ class Build {
         if (needsRecompile) {
             Sys.println("[1/3] Compiling Haxe (C++ & Swift generation)...");
             Sys.setCwd(cwd);
-            // Pass platform define for conditional compilation (#if apple_ios, #if apple_macos, #if apple_visionos)
-            var haxeArgs = ["build.hxml", "-D", 'apple_$platform'];
+            // Pass platform define for conditional compilation (#if sui_ios, #if sui_macos, #if sui_visionos)
+            var haxeArgs = ["build.hxml", "-D", 'sui_$platform'];
             var haxeResult = Sys.command("haxe", haxeArgs);
             Sys.setCwd(oldCwd);
             if (haxeResult != 0) {

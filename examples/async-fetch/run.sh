@@ -3,7 +3,7 @@ set -e
 
 PLATFORM="${1:-macos}"
 APP_NAME="AsyncFetch"
-BUNDLE_ID="com.haxeapple.asyncfetch"
+BUNDLE_ID="com.sui.asyncfetch"
 HXCPP_DIR="/usr/local/lib/haxe/lib/hxcpp/4,3,2"
 
 echo "==> [1/5] Compiling Haxe (generates C++ & Swift)..."
@@ -45,7 +45,7 @@ cp ../../runtime/swift/ViewBridge.swift build/$PLATFORM/Sources/
 cat > build/$PLATFORM/project.yml << YAML
 name: $APP_NAME
 options:
-  bundleIdPrefix: com.haxeapple
+  bundleIdPrefix: com.sui
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "15.0"

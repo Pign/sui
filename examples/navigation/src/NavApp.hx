@@ -10,7 +10,7 @@ class NavApp extends App {
     public function new() {
         super();
         appName = "Navigation";
-        bundleIdentifier = "com.haxeapple.navigation";
+        bundleIdentifier = "com.sui.navigation";
     }
 
     override function body():View {

@@ -25,7 +25,7 @@ class TodoApp extends App {
     public function new() {
         super();
         appName = "TodoList";
-        bundleIdentifier = "com.haxeapple.todoapp";
+        bundleIdentifier = "com.sui.todoapp";
         todos = new State<Array<TodoItem>>([], "todos");
         newItemText = new State<String>("", "newItemText");
     }

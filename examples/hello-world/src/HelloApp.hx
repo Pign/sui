@@ -8,7 +8,7 @@ class HelloApp extends App {
     public function new() {
         super();
         appName = "HelloHaxe";
-        bundleIdentifier = "com.haxeapple.helloworld";
+        bundleIdentifier = "com.sui.helloworld";
     }
 
     override function body():View {
