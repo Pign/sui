@@ -46,9 +46,41 @@ class State<T> {
     private var _value:T;
     private var onChange:Null<T->Void>;
 
+    /** Registry of State instances by name, for C bridge query functions. **/
+    private static var _registry:Map<String, Dynamic> = new Map();
+
     public function new(initialValue:T, ?name:String) {
         this._value = initialValue;
         this.name = name != null ? name : "";
+        if (name != null && name != "")
+            _registry.set(name, this);
+    }
+
+    /** Get array length for a named state variable. Returns -1 if not an array. **/
+    public static function _getArrayLength(name:String):Int {
+        var state:Dynamic = _registry.get(name);
+        if (state == null)
+            return -1;
+        var val:Dynamic = state._value;
+        if (Std.isOfType(val, Array)) {
+            var arr:Array<Dynamic> = val;
+            return arr.length;
+        }
+        return -1;
+    }
+
+    /** Get string value of array element at index for a named state variable. **/
+    public static function _getArrayElement(name:String, index:Int):String {
+        var state:Dynamic = _registry.get(name);
+        if (state == null)
+            return "";
+        var val:Dynamic = state._value;
+        if (Std.isOfType(val, Array)) {
+            var arr:Array<Dynamic> = val;
+            if (index >= 0 && index < arr.length)
+                return Std.string(arr[index]);
+        }
+        return "";
     }
 
     function get_value():T {

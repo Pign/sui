@@ -303,16 +303,33 @@ class SwiftGenerator {
         buf.add("@Observable\n");
         buf.add("class AppState {\n");
         buf.add("    static let shared = AppState()\n\n");
-        for (sd in stateDecls)
-            buf.add('    var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
+        for (sd in stateDecls) {
+            if (sd.swiftType.charAt(0) == "[") {
+                // Array types: computed property that queries hxcpp shared memory
+                buf.add('    var ${sd.name}: ${sd.swiftType} {\n');
+                buf.add('        let count = HaxeBridgeC.arrayLength("${sd.name}")\n');
+                buf.add('        return (0..<count).map { HaxeBridgeC.arrayElement("${sd.name}", at: $$0) }\n');
+                buf.add("    }\n");
+
+                // Add a trigger property so SwiftUI re-renders when notified
+                buf.add('    var _${sd.name}Version: Int = 0\n\n');
+            } else {
+                buf.add('    var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
+            }
+        }
         buf.add("\n    func set(_ key: String, _ value: String) {\n");
         buf.add("        switch key {\n");
         for (sd in stateDecls) {
-            switch (sd.swiftType) {
-                case "Int": buf.add('        case "${sd.name}": ${sd.name} = Int(value) ?? 0\n');
-                case "Double": buf.add('        case "${sd.name}": ${sd.name} = Double(value) ?? 0.0\n');
-                case "Bool": buf.add('        case "${sd.name}": ${sd.name} = value == "true"\n');
-                default: buf.add('        case "${sd.name}": ${sd.name} = value\n');
+            if (sd.swiftType.charAt(0) == "[") {
+                // Array types: bump version counter to trigger SwiftUI re-render
+                buf.add('        case "${sd.name}": _${sd.name}Version += 1\n');
+            } else {
+                switch (sd.swiftType) {
+                    case "Int": buf.add('        case "${sd.name}": ${sd.name} = Int(value) ?? 0\n');
+                    case "Double": buf.add('        case "${sd.name}": ${sd.name} = Double(value) ?? 0.0\n');
+                    case "Bool": buf.add('        case "${sd.name}": ${sd.name} = value == "true"\n');
+                    default: buf.add('        case "${sd.name}": ${sd.name} = value\n');
+                }
             }
         }
         buf.add("        default: break\n");
@@ -412,6 +429,11 @@ class SwiftGenerator {
             buf.add("void haxe_bridge_register_state_callback(haxe_state_callback_t callback);\n\n");
         }
 
+        // Shared-memory array query functions
+        buf.add("// Query array state from hxcpp shared memory\n");
+        buf.add("int32_t haxe_bridge_array_length(const char* stateName);\n");
+        buf.add("const char* haxe_bridge_array_element(const char* stateName, int32_t index);\n\n");
+
         for (fn in fns) {
             var cParams = [for (p in fn.params) '${swiftTypeToCType(p.swiftType)} ${p.name}'];
             if (cParams.length == 0) cParams.push("void");
@@ -430,6 +452,7 @@ class SwiftGenerator {
         if (hasRuntimeActions) {
             buf.add('#include "sui/ui/Button.h"\n');
         }
+        buf.add('#include "sui/state/State.h"\n');
         buf.add("#include <string.h>\n\n");
         buf.add("// Auto-generated bridge: calls into hxcpp-compiled Haxe code.\n\n");
 
@@ -482,6 +505,26 @@ class SwiftGenerator {
             buf.add("    hx::SetTopOfStack((int*)0, true);\n");
             buf.add("}\n\n");
         }
+
+        // Shared-memory array query functions
+        buf.add("int32_t haxe_bridge_array_length(const char* stateName) {\n");
+        buf.add("    int _gc_dummy = 0;\n");
+        buf.add("    hx::SetTopOfStack(&_gc_dummy, true);\n");
+        buf.add("    int32_t result = (int32_t)::sui::state::State_obj::_getArrayLength(::String(stateName));\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return result;\n");
+        buf.add("}\n\n");
+        buf.add("const char* haxe_bridge_array_element(const char* stateName, int32_t index) {\n");
+        buf.add("    int _gc_dummy = 0;\n");
+        buf.add("    hx::SetTopOfStack(&_gc_dummy, true);\n");
+        buf.add("    ::String _hx_result = ::sui::state::State_obj::_getArrayElement(::String(stateName), (int)index);\n");
+        buf.add("    static thread_local char _buf[4096];\n");
+        buf.add("    const char* _cstr = _hx_result.__CStr();\n");
+        buf.add("    strncpy(_buf, _cstr, sizeof(_buf) - 1);\n");
+        buf.add("    _buf[sizeof(_buf) - 1] = 0;\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return _buf;\n");
+        buf.add("}\n\n");
 
         for (fn in fns) {
             var cParams = [for (p in fn.params) '${swiftTypeToCType(p.swiftType)} ${p.name}'];
@@ -565,6 +608,17 @@ class SwiftGenerator {
             buf.add("        haxe_bridge_invoke_action(Int32(id))\n");
             buf.add("    }\n\n");
         }
+        // Shared-memory array query wrappers
+        buf.add("    /// Query array length from hxcpp shared memory.\n");
+        buf.add("    static func arrayLength(_ stateName: String) -> Int {\n");
+        buf.add("        return Int(haxe_bridge_array_length(stateName.cString(using: .utf8)))\n");
+        buf.add("    }\n\n");
+        buf.add("    /// Query array element from hxcpp shared memory.\n");
+        buf.add("    static func arrayElement(_ stateName: String, at index: Int) -> String {\n");
+        buf.add("        let cStr = haxe_bridge_array_element(stateName.cString(using: .utf8), Int32(index))\n");
+        buf.add("        return String(cString: cStr!)\n");
+        buf.add("    }\n\n");
+
         for (fn in fns) {
             var swiftParams = [for (p in fn.params) '_ ${p.name}: ${p.swiftType}'];
             var retArrow = fn.returnType != "Void" ? ' -> ${fn.returnType}' : "";
