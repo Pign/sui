@@ -494,7 +494,7 @@ class SwiftGenerator {
             switch (fn.returnType) {
                 case "String":
                     buf.add('    ::String _hx_result = $call;\n');
-                    buf.add("    static char _buf[4096];\n");
+                    buf.add("    static thread_local char _buf[4096];\n");
                     buf.add("    const char* _cstr = _hx_result.__CStr();\n");
                     buf.add("    strncpy(_buf, _cstr, sizeof(_buf) - 1);\n");
                     buf.add("    _buf[sizeof(_buf) - 1] = 0;\n");
