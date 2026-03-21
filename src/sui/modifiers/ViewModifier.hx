@@ -57,6 +57,9 @@ enum ViewModifier {
     OnDisappear(actionId:Int);
     TaskOnAppear(actionId:Int);
 
+    // Gestures
+    OnTapGesture(action:sui.state.StateAction);
+
     // Spacing
     FixedSize(horizontal:Bool, vertical:Bool);
 }
