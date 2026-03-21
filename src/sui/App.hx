@@ -13,6 +13,7 @@ package sui;
     }
     ```
 **/
+@:autoBuild(sui.macros.StateMacro.build())
 class App {
     public var appName:String;
     public var bundleIdentifier:String;
