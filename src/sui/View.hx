@@ -125,6 +125,12 @@ class View {
         return this;
     }
 
+    /** Add a toolbar item with a specific placement. **/
+    public function toolbarItem(placement:String, content:View):View {
+        modifierChain.push(ViewModifier.ToolbarItem(placement, content));
+        return this;
+    }
+
     public function animation(value:String):View {
         modifierChain.push(ViewModifier.Animation(value));
         return this;
@@ -144,6 +150,36 @@ class View {
     /** Add a tap gesture with a declarative StateAction. **/
     public function onTapGesture(action:sui.state.StateAction):View {
         modifierChain.push(ViewModifier.OnTapGesture(action));
+        return this;
+    }
+
+    /** Set the tint/accent color for this view and its children. **/
+    public function tint(color:ColorValue):View {
+        modifierChain.push(ViewModifier.Tint(color));
+        return this;
+    }
+
+    /** Add a badge to a tab item or list row. **/
+    public function badge(value:Dynamic):View {
+        modifierChain.push(ViewModifier.Badge(value));
+        return this;
+    }
+
+    /** Tag a view with a value for use in Picker selection. **/
+    public function tag(value:String):View {
+        modifierChain.push(ViewModifier.Tag(value));
+        return this;
+    }
+
+    /** Run a StateAction when the view appears. **/
+    public function onAppearAction(action:sui.state.StateAction):View {
+        modifierChain.push(ViewModifier.OnAppearAction(action));
+        return this;
+    }
+
+    /** Run a StateAction as an async task when the view appears. **/
+    public function taskAction(action:sui.state.StateAction):View {
+        modifierChain.push(ViewModifier.TaskAction(action));
         return this;
     }
 

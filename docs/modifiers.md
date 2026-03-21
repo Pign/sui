@@ -118,6 +118,9 @@ new VStack([...])
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
 | `.animation(value)` | `value: String` | Animation curve (e.g. `"default"`, `"easeIn"`, `"spring"`) |
+| `.tint(color)` | `color: ColorValue` | Set accent/tint color for this view |
+| `.badge(value)` | `value: Dynamic` | Badge on tab items or list rows |
+| `.tag(value)` | `value: String` | Tag for Picker selection matching |
 
 ## Gestures
 

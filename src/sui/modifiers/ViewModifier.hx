@@ -47,6 +47,7 @@ enum ViewModifier {
     // Search & Toolbar
     Searchable(textBinding:String, prompt:Null<String>);
     Toolbar(content:sui.View);
+    ToolbarItem(placement:String, content:sui.View);
     Overlay(content:sui.View);
 
     // Animation
@@ -56,9 +57,16 @@ enum ViewModifier {
     OnAppear(actionId:Int);
     OnDisappear(actionId:Int);
     TaskOnAppear(actionId:Int);
+    OnAppearAction(action:sui.state.StateAction);
+    TaskAction(action:sui.state.StateAction);
 
     // Gestures
     OnTapGesture(action:sui.state.StateAction);
+
+    // Appearance
+    Tint(color:ColorValue);
+    Badge(value:Dynamic);
+    Tag(value:String);
 
     // Spacing
     FixedSize(horizontal:Bool, vertical:Bool);

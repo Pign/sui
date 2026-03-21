@@ -110,6 +110,7 @@ class SwiftGenerator {
         var bundleId = 'com.example.${className.toLowerCase()}';
         localBindings = new Map();
         needsRuntimeBridge = false;
+        needsHorizontalSizeClass = false;
         nextActionId = 0;
 
         // 1. Find State<T> fields
@@ -189,6 +190,9 @@ class SwiftGenerator {
                 viewSwift.add('    @State private var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
             if (stateDecls.length > 0) viewSwift.add("\n");
         }
+
+        if (needsHorizontalSizeClass)
+            viewSwift.add("    @Environment(\\.horizontalSizeClass) private var horizontalSizeClass\n\n");
 
         viewSwift.add("    var body: some View {\n");
 
@@ -351,6 +355,11 @@ class SwiftGenerator {
                     }
                 default:
             }
+        }
+
+        // In bridge/AppState mode, give components access to shared state
+        if (needsRuntimeBridge) {
+            buf.add("    @Bindable var appState = AppState.shared\n");
         }
 
         buf.add("\n");
@@ -666,6 +675,8 @@ class SwiftGenerator {
     static var localBindings:Map<Int, haxe.macro.Type.TypedExpr> = new Map();
     /** Tracks whether the current app needs the runtime bridge (has button closures). **/
     static var needsRuntimeBridge:Bool = false;
+    /** Tracks whether the current app uses AdaptiveStack (needs @Environment horizontalSizeClass). **/
+    static var needsHorizontalSizeClass:Bool = false;
     /** Counter for button action IDs (must match Button._nextActionId at runtime). **/
     static var nextActionId:Int = 0;
 
@@ -1057,6 +1068,25 @@ class SwiftGenerator {
                 buf.add('${pad}}\n');
                 return buf.toString();
 
+            case "AdaptiveStack":
+                needsHorizontalSizeClass = true;
+                var buf = new StringBuf();
+                buf.add('${pad}if horizontalSizeClass == .regular {\n');
+                buf.add('${pad}    NavigationSplitView {\n');
+                if (args.length > 0) buf.add(viewToSwift(args[0], indent + 2));
+                buf.add('${pad}    } detail: {\n');
+                if (args.length > 1) buf.add(viewToSwift(args[1], indent + 2));
+                buf.add('${pad}    }\n');
+                buf.add('${pad}} else {\n');
+                buf.add('${pad}    NavigationStack {\n');
+                buf.add('${pad}        VStack {\n');
+                if (args.length > 0) buf.add(viewToSwift(args[0], indent + 3));
+                if (args.length > 1) buf.add(viewToSwift(args[1], indent + 3));
+                buf.add('${pad}        }\n');
+                buf.add('${pad}    }\n');
+                buf.add('${pad}}\n');
+                return buf.toString();
+
             default:
                 // Generic: read @:swiftView, @:swiftLabel, @:swiftBinding metadata
                 return genericViewToSwift(cls, args, indent);
@@ -1344,7 +1374,8 @@ class SwiftGenerator {
                  "toggleStyle" | "pickerStyle" | "scrollIndicators" |
                  "sheet" | "alert" | "confirmationDialog" | "searchable" | "toolbar" | "animation" |
                  "onAppear" | "onDisappear" | "task" | "navigationDestination" |
-                 "onTapGesture":
+                 "onTapGesture" | "tint" | "badge" | "tag" |
+                 "onAppearAction" | "taskAction" | "toolbarItem":
                 true;
             default: false;
         }
@@ -1418,12 +1449,23 @@ class SwiftGenerator {
                 'task { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) }';
 
             case "onTapGesture":
-                // Extract the StateAction from the argument
                 var actionCode = if (args.length > 0) stateActionToSwift(args[0]) else null;
                 if (actionCode != null)
                     'onTapGesture { ${actionCode} }';
                 else
                     'onTapGesture { }';
+            case "onAppearAction":
+                var actionCode = if (args.length > 0) stateActionToSwift(args[0]) else null;
+                if (actionCode != null)
+                    'onAppear { ${actionCode} }';
+                else
+                    'onAppear { }';
+            case "taskAction":
+                var actionCode = if (args.length > 0) stateActionToSwift(args[0]) else null;
+                if (actionCode != null)
+                    'task { ${actionCode} }';
+                else
+                    'task { }';
 
             // --- Content-bearing modifiers ---
             case "sheet":
@@ -1456,6 +1498,12 @@ class SwiftGenerator {
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
                 'toolbar {\n${contentSwift}${pad}}';
+            case "toolbarItem":
+                var placement = if (args.length > 0) extractString(args[0]) else "automatic";
+                var pad = ind(indent + 1);
+                var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 3) else "";
+                var pad2 = ind(indent + 2);
+                'toolbar {\n${pad}    ToolbarItem(placement: .${placement}) {\n${contentSwift}${pad2}}\n${pad}}';
             case "animation":
                 var value = if (args.length > 0) extractString(args[0]) else null;
                 if (value != null)
@@ -1466,6 +1514,20 @@ class SwiftGenerator {
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
                 'overlay {\n${contentSwift}${pad}}';
+            case "tint":
+                var e = if (args.length > 0) extractEnumName(args[0]) else null;
+                'tint(.${e != null ? camel(e) : "accentColor"})';
+            case "badge":
+                var v = if (args.length > 0) extractConstant(args[0]) else null;
+                if (v != null)
+                    'badge($v)';
+                else {
+                    var s = if (args.length > 0) extractString(args[0]) else null;
+                    s != null ? 'badge(${s})' : "badge(0)";
+                }
+            case "tag":
+                var s = if (args.length > 0) extractString(args[0]) else null;
+                s != null ? 'tag("${esc(s)}")' : 'tag("")';
             default:
                 // Generic: try to pass through args
                 if (args.length == 0) '${name}()';

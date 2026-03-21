@@ -80,6 +80,21 @@ new SecureField("Password", "password")
 
 Supports the same `textFieldStyle` modifier as `TextField`.
 
+## TextEditor
+
+A multi-line text input field bound to a `@State` string.
+
+```haxe
+new TextEditor("composeBody")
+    .frame(null, 200)
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `textBinding` | `String` | Name of the `@State var` (String) to bind to |
+
 ## Toggle
 
 A boolean switch bound to a `@State` bool.
