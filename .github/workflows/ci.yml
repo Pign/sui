@@ -13,9 +13,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Haxe
-        uses: krdlab/setup-haxe@v1
-        with:
-          haxe-version: 4.3.6
+        run: |
+          brew install haxe
+          haxelib setup /usr/local/lib/haxe/lib
 
       - name: Install hxcpp
         run: |
