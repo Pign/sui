@@ -951,7 +951,7 @@ class SwiftGenerator {
         var pad = ind(indent);
         var name = cls.name;
         switch (name) {
-            case "VStack" | "HStack" | "ZStack":
+            case "VStack" | "HStack" | "ZStack" | "LazyVStack" | "LazyHStack":
                 var spacing:String = null;
                 var children:Array<haxe.macro.Type.TypedExpr> = [];
                 for (arg in args) {
@@ -1107,6 +1107,71 @@ class SwiftGenerator {
                     buf.add(viewToSwift(child, indent + 1));
                 buf.add('${pad}}\n');
                 return buf.toString();
+
+            case "LazyVGrid":
+                var columns = if (args.length > 0) extractConstant(args[0]) else "2";
+                var spacing:String = null;
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        case TConst(c):
+                            switch (c) {
+                                case TFloat(v): spacing = v;
+                                case TInt(v): if (Std.string(v) != columns) spacing = Std.string(v);
+                                default:
+                            }
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                var cols = columns != null ? columns : "2";
+                buf.add('${pad}LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: ${cols})');
+                if (spacing != null) buf.add(', spacing: ${spacing}');
+                buf.add(') {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "LazyHGrid":
+                var rows = if (args.length > 0) extractConstant(args[0]) else "2";
+                var spacing:String = null;
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        case TConst(c):
+                            switch (c) {
+                                case TFloat(v): spacing = v;
+                                case TInt(v): if (Std.string(v) != rows) spacing = Std.string(v);
+                                default:
+                            }
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                var r = rows != null ? rows : "2";
+                buf.add('${pad}LazyHGrid(rows: Array(repeating: GridItem(.flexible()), count: ${r})');
+                if (spacing != null) buf.add(', spacing: ${spacing}');
+                buf.add(') {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "ContentUnavailableView":
+                var title = if (args.length > 0) extractString(args[0]) else "No Content";
+                var sysImage = if (args.length > 1) extractString(args[1]) else null;
+                var desc = if (args.length > 2) extractString(args[2]) else null;
+                if (sysImage != null && desc != null)
+                    return '${pad}ContentUnavailableView("${esc(title != null ? title : "")}", systemImage: "${esc(sysImage)}", description: Text("${esc(desc)}"))\n';
+                else if (sysImage != null)
+                    return '${pad}ContentUnavailableView("${esc(title != null ? title : "")}", systemImage: "${esc(sysImage)}")\n';
+                else
+                    return '${pad}ContentUnavailableView("${esc(title != null ? title : "")}", systemImage: "exclamationmark.triangle")\n';
 
             case "Gauge":
                 var label = if (args.length > 0) extractString(args[0]) else "";
@@ -1606,8 +1671,10 @@ class SwiftGenerator {
                  "onTapGesture" | "tint" | "badge" | "tag" |
                  "onAppearAction" | "taskAction" | "toolbarItem" |
                  "blur" | "scaleEffect" | "rotationEffect" | "offset" |
-                 "fullScreenCover" | "contextMenu" | "swipeActions" | "refreshable" |
-                 "listStyle" | "aspectRatio" | "accessibilityLabel":
+                 "brightness" | "contrast" | "saturation" | "grayscale" |
+                 "fullScreenCover" | "popover" | "contextMenu" | "swipeActions" | "refreshable" |
+                 "listStyle" | "aspectRatio" | "accessibilityLabel" |
+                 "onSubmit" | "onLongPressGesture":
                 true;
             default: false;
         }
@@ -1776,7 +1843,26 @@ class SwiftGenerator {
                 var y = resolveModifierValue(args, 1, "0");
                 'offset(x: $x, y: $y)';
 
+            // --- Image effects ---
+            case "brightness":
+                var v = if (args.length > 0) extractConstant(args[0]) else "0";
+                'brightness(${v != null ? v : "0"})';
+            case "contrast":
+                var v = if (args.length > 0) extractConstant(args[0]) else "1";
+                'contrast(${v != null ? v : "1"})';
+            case "saturation":
+                var v = if (args.length > 0) extractConstant(args[0]) else "1";
+                'saturation(${v != null ? v : "1"})';
+            case "grayscale":
+                var v = if (args.length > 0) extractConstant(args[0]) else "0";
+                'grayscale(${v != null ? v : "0"})';
+
             // --- Presentation ---
+            case "popover":
+                var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
+                var pad2 = ind(indent + 1);
+                var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 2) else '${pad2}    Text("Popover")\n';
+                'popover(isPresented: $$${binding}) {\n${contentSwift}${pad2}}';
             case "fullScreenCover":
                 var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
                 var pad2 = ind(indent + 1);
@@ -1812,6 +1898,17 @@ class SwiftGenerator {
             case "accessibilityLabel":
                 var s = if (args.length > 0) extractString(args[0]) else "";
                 'accessibilityLabel("${esc(s != null ? s : "")}")';
+
+            // --- Interaction ---
+            case "onSubmit":
+                needsRuntimeBridge = true;
+                'onSubmit { Task.detached { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) } }';
+            case "onLongPressGesture":
+                var actionCode = if (args.length > 0) stateActionToSwift(args[0]) else null;
+                if (actionCode != null)
+                    'onLongPressGesture { ${actionCode} }';
+                else
+                    'onLongPressGesture { }';
 
             default:
                 // Generic: try to pass through args

@@ -74,8 +74,15 @@ enum ViewModifier {
     RotationEffect(degrees:Dynamic);
     Offset(x:Dynamic, y:Dynamic);
 
+    // Image effects
+    Brightness(amount:Float);
+    Contrast(amount:Float);
+    Saturation(amount:Float);
+    Grayscale(amount:Float);
+
     // Presentation
     FullScreenCover(isPresentedBinding:String, content:sui.View);
+    Popover(isPresentedBinding:String, content:sui.View);
     ContextMenu(content:sui.View);
 
     // List
@@ -88,6 +95,10 @@ enum ViewModifier {
 
     // Accessibility
     AccessibilityLabel(label:String);
+
+    // Interaction
+    OnSubmit(actionId:Int);
+    OnLongPressGesture(action:sui.state.StateAction);
 
     // Spacing
     FixedSize(horizontal:Bool, vertical:Bool);
