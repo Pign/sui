@@ -22,17 +22,11 @@ Under the hood, the framework registers the closure in an action registry and ge
 
 When you update a `@:state` variable from Haxe, the update flows back to SwiftUI automatically:
 
-```
-Haxe: state.value = newValue
-    │
-    ▼
-C++ bridge: update stored value, notify Swift callback
-    │
-    ▼
-Swift: @State property update
-    │
-    ▼
-SwiftUI: automatic re-render
+```mermaid
+flowchart TD
+    A["Haxe: state.value = newValue"] --> B["C++ bridge: notify Swift callback"]
+    B --> C["Swift: @State property update"]
+    C --> D["SwiftUI: automatic re-render"]
 ```
 
 No annotation needed. Any `@:state` variable participates in this flow.
@@ -140,19 +134,18 @@ The `BridgeCallLoading` version sets the loading text immediately, then runs the
 
 ## How It Works
 
-```
-┌─────────────────────────────────────────────────┐
-│  Transparent (automatic)                        │
-│                                                 │
-│  Button closure ──→ action registry ──→ C++     │
-│  state.value =  ──→ callback        ──→ Swift   │
-│  onAppear/task  ──→ action registry ──→ C++     │
-├─────────────────────────────────────────────────┤
-│  @:expose (explicit)                            │
-│                                                 │
-│  Swift code ──→ HaxeBridgeC.fn() ──→ C++ ──→   │
-│  Haxe static function ──→ return value ──→ Swift│
-└─────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Transparent["Transparent (automatic)"]
+        B1["Button closure"] --> AR["Action registry"] --> CPP1["C++/Haxe"]
+        S1["state.value ="] --> CB["C++ callback"] --> SW1["Swift @State"]
+        L1["onAppear/task"] --> AR
+    end
+
+    subgraph Explicit["@:expose (explicit)"]
+        SW2["Swift code"] --> HBC["HaxeBridgeC.fn()"] --> CPP2["C++/Haxe"]
+        CPP2 --> RET["Return value"] --> SW2
+    end
 ```
 
 The transparent bridge handles closures and state synchronization without any annotations. `@:expose` adds named entry points for when Swift code needs to call specific Haxe functions by name and get return values.

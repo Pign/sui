@@ -71,20 +71,16 @@ haxelib run sui run visionos
 
 ## What Happens Under the Hood
 
-```
-Haxe source (.hx)
-    │
-    ▼
-Haxe compiler + hxcpp → C++ source
-    │
-    ▼
-sui macro → Swift view code (SwiftUI)
-    │
-    ▼
-xcodegen → Xcode project (.xcodeproj)
-    │
-    ▼
-xcodebuild → Native app bundle (.app)
+```mermaid
+flowchart TD
+    A["Haxe source (.hx)"] --> B["Haxe compiler + hxcpp"]
+    B --> C["C++ source"]
+    B --> D["sui macro"]
+    D --> E["Swift view code (SwiftUI)"]
+    C & E --> F["xcodegen"]
+    F --> G["Xcode project (.xcodeproj)"]
+    G --> H["xcodebuild"]
+    H --> I["Native app bundle (.app)"]
 ```
 
 1. The Haxe compiler compiles your code to C++ via hxcpp

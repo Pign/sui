@@ -119,10 +119,11 @@ Then reference it from Haxe with `@:swiftView("AnimatedLogo")`.
 
 ## How It Works
 
-```
-swift/ files        --> copied to build/Sources/  --> compiled by Xcode
-sui.json packages   --> project.yml packages block --> resolved by SPM
-@:swiftView classes --> Swift instantiation call   --> references your structs
+```mermaid
+flowchart LR
+    A["swift/ files"] --> B["build/Sources/"] --> C["Compiled by Xcode"]
+    D["sui.json packages"] --> E["project.yml"] --> F["Resolved by SPM"]
+    G["@:swiftView classes"] --> H["Swift instantiation call"] --> I["References your structs"]
 ```
 
 - Swift files in `swift/` are copied verbatim &mdash; no code generation

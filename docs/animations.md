@@ -132,6 +132,20 @@ new ConditionalView("showDetail",
 | `"move"` | Move from an edge |
 | `"push"` | Push old view out, new view in |
 
+### How Animations Flow
+
+```mermaid
+flowchart TD
+    A["Button tap"] --> B["StateAction.Animated"]
+    B --> C["withAnimation(.spring)"]
+    C --> D["State mutation"]
+    D --> E["SwiftUI detects change"]
+    E --> F[".animation() modifier"]
+    F --> G["Smooth interpolation"]
+    E --> H[".transition() modifier"]
+    H --> I["Enter/exit animation"]
+```
+
 ### Important
 
 Transitions only animate when the state change is itself animated. Use `StateAction.Animated` on the toggle:

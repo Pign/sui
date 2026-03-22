@@ -10,6 +10,19 @@
 - **Native SwiftUI** &mdash; Every view, modifier, and interaction maps directly to SwiftUI. No web views, no wrappers.
 - **All Apple Platforms** &mdash; Target macOS, iOS, iPadOS, and visionOS from a single codebase.
 
+## How It Works
+
+```mermaid
+flowchart LR
+    A["Your Haxe Code"] --> B["sui macros"]
+    B --> C["Swift/SwiftUI"]
+    B --> D["C++ (hxcpp)"]
+    C & D --> E["Xcode Build"]
+    E --> F["macOS App"]
+    E --> G["iOS App"]
+    E --> H["visionOS App"]
+```
+
 ## Quick Example
 
 ```haxe
