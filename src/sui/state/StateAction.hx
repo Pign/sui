@@ -3,73 +3,62 @@ package sui.state;
 /**
     Describes a state mutation declaratively so the Swift generator
     can emit proper SwiftUI code instead of trying to decompile closures.
+
+    State references are type-checked — pass the `State<T>` field directly:
+    ```haxe
+    StateAction.Increment(rotation, 90)    // not "rotation"
+    StateAction.Toggle(showDetail)          // not "showDetail"
+    ```
 **/
 enum StateAction {
-    /** Increment a named state variable by a value. **/
-    Increment(stateName:String, amount:Int);
+    /** Increment a state variable by a value. **/
+    Increment(state:Dynamic, amount:Int);
 
-    /** Decrement a named state variable by a value. **/
-    Decrement(stateName:String, amount:Int);
+    /** Decrement a state variable by a value. **/
+    Decrement(state:Dynamic, amount:Int);
 
-    /** Set a named state variable to a specific value. **/
-    SetValue(stateName:String, value:Dynamic);
+    /** Set a state variable to a specific value. **/
+    SetValue(state:Dynamic, value:Dynamic);
 
-    /** Toggle a named boolean state variable. **/
-    Toggle(stateName:String);
+    /** Toggle a boolean state variable. **/
+    Toggle(state:Dynamic);
 
-    /** Append to a named array state variable. **/
-    Append(stateName:String, value:Dynamic);
+    /** Append to an array state variable. **/
+    Append(state:Dynamic, value:Dynamic);
 
     /** Custom Swift expression (escape hatch). **/
     CustomSwift(code:String);
 
     /**
         Call a @:expose function asynchronously and assign the result to a state variable.
-        Runs in a Swift Task so the UI stays responsive.
 
-        Single arg:  BridgeCall("result", "greet", "World")
-        Multi arg:   BridgeCall("result", "doLogin", ["url", "email", "pass"])
-
-        Generates:
-        ```swift
-        Task.detached {
-            let r = HaxeBridgeC.greet("World")
-            await MainActor.run { result = r }
-        }
+        ```haxe
+        BridgeCall(result, "greet", "World")
+        BridgeCall(result, "doLogin", ["url", "email", "pass"])
         ```
     **/
-    BridgeCall(stateName:String, functionName:String, args:Dynamic);
+    BridgeCall(state:Dynamic, functionName:String, args:Dynamic);
 
     /**
         Like BridgeCall but sets a loading value immediately before the async call.
 
-        Single arg:  BridgeCallLoading("result", "Loading...", "fetchData", "https://url")
-        Multi arg:   BridgeCallLoading("result", "Loading...", "doLogin", ["url", "email", "pass"])
-
-        Generates:
-        ```swift
-        result = "Loading..."
-        Task.detached {
-            let r = HaxeBridgeC.doLogin("url", "email", "pass")
-            await MainActor.run { result = r }
-        }
+        ```haxe
+        BridgeCallLoading(result, "Loading...", "fetchData", "https://url")
         ```
     **/
-    BridgeCallLoading(stateName:String, loadingValue:String, functionName:String, args:Dynamic);
+    BridgeCallLoading(state:Dynamic, loadingValue:String, functionName:String, args:Dynamic);
 
     /**
         Wrap any StateAction in a SwiftUI `withAnimation` block.
 
-        Curves: "default", "easeIn", "easeOut", "easeInOut", "spring", "linear", "bouncy"
-
         ```haxe
-        StateAction.Animated(StateAction.Toggle("showDetail"), "spring")
+        StateAction.Animated(rotation.inc(90), AnimationCurve.Spring)
         ```
 
         Generates:
         ```swift
-        withAnimation(.spring) { showDetail.toggle() }
+        withAnimation(.spring) { rotation += 90 }
         ```
     **/
-    Animated(action:StateAction, curve:String);
+    Animated(action:StateAction, curve:AnimationCurve);
 }

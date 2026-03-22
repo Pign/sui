@@ -1,7 +1,6 @@
 import sui.App;
 import sui.View;
 import sui.ui.*;
-import sui.state.StateAction;
 
 class CounterApp extends App {
     static function main() {}
@@ -20,8 +19,8 @@ class CounterApp extends App {
                 .font(FontStyle.Title)
                 .padding(),
             new HStack(null, 20, [
-                new Button("-", () -> count.value = count.value - 1, StateAction.Decrement("count", 1)),
-                new Button("+", () -> count.value = count.value + 1, StateAction.Increment("count", 1))
+                new Button("-", null, count.dec(1)),
+                new Button("+", null, count.inc(1))
             ])
         ]);
     }
