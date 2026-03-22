@@ -1621,21 +1621,57 @@ class SwiftGenerator {
 
     // ── State actions ───────────────────────────────────────────────
 
+    /** Resolve a StateAction state reference: accepts State<T> field refs or string names. **/
+    static function resolveStateName(expr:haxe.macro.Type.TypedExpr):String {
+        if (expr == null) return null;
+        // Try as string first (backward compat)
+        var s = extractString(expr);
+        if (s != null) return s;
+        // Try as State<T> field reference
+        var e = unwrap(expr);
+        switch (e.expr) {
+            case TField(_, fa):
+                switch (fa) {
+                    case FInstance(_, _, fieldRef): return fieldRef.get().name;
+                    case FStatic(_, fieldRef): return fieldRef.get().name;
+                    default:
+                }
+            default:
+                var fieldName = extractThisField(e);
+                if (fieldName != null) return fieldName;
+        }
+        return null;
+    }
+
+    /** Convert an AnimationCurve enum value to a Swift animation name. **/
+    static function resolveAnimationCurve(expr:haxe.macro.Type.TypedExpr):String {
+        var e = unwrap(expr);
+        // Handle enum value
+        var name = extractEnumName(e);
+        if (name != null) return camel(name);
+        // Fallback to string
+        var s = extractString(e);
+        return s != null ? s : "default";
+    }
+
     static function stateActionToSwift(expr:haxe.macro.Type.TypedExpr):String {
-        switch (expr.expr) {
+        var e = unwrap(expr);
+        switch (e.expr) {
             case TCall(callee, args):
                 switch (callee.expr) {
                     case TField(_, fa):
                         switch (fa) {
                             case FEnum(_, ef):
-                                var p0 = if (args.length > 0) extractString(args[0]) else null;
+                                var p0 = if (args.length > 0) resolveStateName(args[0]) else null;
                                 var p1 = if (args.length > 1) extractConstant(args[1]) else null;
                                 return switch (ef.name) {
                                     case "Increment": '${p0} += ${p1 != null ? p1 : "1"}';
                                     case "Decrement": '${p0} -= ${p1 != null ? p1 : "1"}';
                                     case "SetValue": '${p0} = ${p1 != null ? p1 : "0"}';
                                     case "Toggle": '${p0}.toggle()';
-                                    case "CustomSwift": p0 != null ? p0 : "// custom";
+                                    case "CustomSwift":
+                                        var code = if (args.length > 0) extractString(args[0]) else null;
+                                        code != null ? code : "// custom";
                                     case "BridgeCall":
                                         var fnName = if (args.length > 1) extractString(args[1]) else "unknown";
                                         var argStr = if (args.length > 2) extractBridgeArgs(args[2]) else "";
@@ -1646,11 +1682,10 @@ class SwiftGenerator {
                                         var argStr = if (args.length > 3) extractBridgeArgs(args[3]) else "";
                                         '${p0} = "${esc(loadingVal)}"; Task.detached { let r = HaxeBridgeC.${fnName}(${argStr}); await MainActor.run { ${p0} = r } }';
                                     case "Animated":
-                                        // args[0] = inner StateAction, args[1] = curve string
                                         var innerAction = if (args.length > 0) stateActionToSwift(args[0]) else null;
-                                        var curve = if (args.length > 1) extractString(args[1]) else "default";
+                                        var curve = if (args.length > 1) resolveAnimationCurve(args[1]) else "default";
                                         if (innerAction != null)
-                                            'withAnimation(.${curve != null ? curve : "default"}) { ${innerAction} }';
+                                            'withAnimation(.${curve}) { ${innerAction} }';
                                         else
                                             null;
                                     default: null;

@@ -88,6 +88,33 @@ class State<T> {
         onChange = callback;
     }
 
+    // ── Action builders (return StateAction for declarative UI) ──────
+
+    /** Create an increment action: `count.inc(1)` → `count += 1` in Swift. **/
+    public inline function inc(amount:Int):Action {
+        return StateAction.Increment(this, amount);
+    }
+
+    /** Create a decrement action: `count.dec(1)` → `count -= 1` in Swift. **/
+    public inline function dec(amount:Int):Action {
+        return StateAction.Decrement(this, amount);
+    }
+
+    /** Create a set action: `scale.setTo(1.5)` → `scale = 1.5` in Swift. **/
+    public inline function setTo(val:Dynamic):Action {
+        return StateAction.SetValue(this, val);
+    }
+
+    /** Create a toggle action: `visible.tog()` → `visible.toggle()` in Swift. **/
+    public inline function tog():Action {
+        return StateAction.Toggle(this);
+    }
+
+    /** Create an append action: `items.appendAction("new")` → `items.append("new")` in Swift. **/
+    public inline function appendAction(val:Dynamic):Action {
+        return StateAction.Append(this, val);
+    }
+
     // ── Shared-memory query API (called from C bridge) ──────────────
 
     /** Get array length for a named state. Returns -1 if not found or not an array. **/

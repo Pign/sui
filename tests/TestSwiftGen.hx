@@ -28,8 +28,8 @@ class TestSwiftGen extends App {
             Text.withState("Value: {count}")
                 .bold(),
             new HStack(null, 10, [
-                new Button("-", () -> count.set(count.get() - 1), StateAction.Decrement("count", 1)),
-                new Button("+", () -> count.set(count.get() + 1), StateAction.Increment("count", 1))
+                new Button("-", null, count.dec(1)),
+                new Button("+", null, count.inc(1))
             ]),
             new Spacer()
         ]);
