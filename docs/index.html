@@ -63,38 +63,33 @@
         paths: 'auto'
       },
       auto2top: true,
-      routerMode: 'hash',
-      markdown: {
-        renderer: {
-          code: function(code, lang) {
-            if (lang === 'mermaid') {
-              return '<div class="mermaid">' + code + '</div>';
-            }
-            return this.origin.code.apply(this, arguments);
-          }
-        }
-      }
+      routerMode: 'hash'
     };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    var defined = false;
+    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+    function docsifyMermaid(hook) {
+      hook.afterEach(function(html) {
+        return html.replace(/<pre[^>]*><code[^>]*class="lang-mermaid"[^>]*>([\s\S]*?)<\/code><\/pre>/g, function(match, code) {
+          var decoded = code.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+          return '<div class="mermaid">' + decoded + '</div>';
+        });
+      });
+      hook.doneEach(function() {
+        mermaid.run({ querySelector: '.mermaid' });
+      });
+    }
+
+    window.$docsify = window.$docsify || {};
+    window.$docsify.plugins = (window.$docsify.plugins || []).concat(docsifyMermaid);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-haxe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-swift.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script>
-    mermaid.initialize({ startOnLoad: false, theme: 'default' });
-    document.addEventListener('DOMContentLoaded', function() {
-      // Re-render mermaid on route change
-      var observer = new MutationObserver(function() {
-        document.querySelectorAll('.mermaid').forEach(function(el) {
-          if (!el.getAttribute('data-processed')) {
-            mermaid.run({ nodes: [el] });
-          }
-        });
-      });
-      observer.observe(document.getElementById('app'), { childList: true, subtree: true });
-    });
-  </script>
 </body>
 </html>
