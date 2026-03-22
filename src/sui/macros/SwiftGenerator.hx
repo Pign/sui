@@ -306,12 +306,19 @@ class SwiftGenerator {
         for (sd in stateDecls) {
             if (sd.swiftType.charAt(0) == "[") {
                 // Array types: computed property that queries hxcpp shared memory
+                var innerType = sd.swiftType.substring(1, sd.swiftType.length - 1);
+                var accessor = switch (innerType) {
+                    case "Int": "arrayIntElement";
+                    case "Double": "arrayFloatElement";
+                    case "Bool": "arrayBoolElement";
+                    default: "arrayStringElement";
+                };
                 buf.add('    var ${sd.name}: ${sd.swiftType} {\n');
+                buf.add('        let _ = _${sd.name}Version // subscribe to changes\n');
                 buf.add('        let count = HaxeBridgeC.arrayLength("${sd.name}")\n');
-                buf.add('        return (0..<count).map { HaxeBridgeC.arrayElement("${sd.name}", at: $$0) }\n');
+                buf.add('        guard count > 0 else { return [] }\n');
+                buf.add('        return (0..<count).map { HaxeBridgeC.${accessor}("${sd.name}", at: $$0) }\n');
                 buf.add("    }\n");
-
-                // Add a trigger property so SwiftUI re-renders when notified
                 buf.add('    var _${sd.name}Version: Int = 0\n\n');
             } else {
                 buf.add('    var ${sd.name}: ${sd.swiftType} = ${sd.defaultValue}\n');
@@ -429,10 +436,18 @@ class SwiftGenerator {
             buf.add("void haxe_bridge_register_state_callback(haxe_state_callback_t callback);\n\n");
         }
 
-        // Shared-memory array query functions
+        // Shared-memory query functions
         buf.add("// Query array state from hxcpp shared memory\n");
         buf.add("int32_t haxe_bridge_array_length(const char* stateName);\n");
-        buf.add("const char* haxe_bridge_array_element(const char* stateName, int32_t index);\n\n");
+        buf.add("const char* haxe_bridge_array_string_element(const char* stateName, int32_t index);\n");
+        buf.add("int32_t haxe_bridge_array_int_element(const char* stateName, int32_t index);\n");
+        buf.add("double haxe_bridge_array_float_element(const char* stateName, int32_t index);\n");
+        buf.add("bool haxe_bridge_array_bool_element(const char* stateName, int32_t index);\n\n");
+        buf.add("// Query object fields from array elements\n");
+        buf.add("const char* haxe_bridge_object_field(const char* stateName, int32_t index, const char* fieldName);\n");
+        buf.add("int32_t haxe_bridge_object_int_field(const char* stateName, int32_t index, const char* fieldName);\n");
+        buf.add("double haxe_bridge_object_float_field(const char* stateName, int32_t index, const char* fieldName);\n");
+        buf.add("bool haxe_bridge_object_bool_field(const char* stateName, int32_t index, const char* fieldName);\n\n");
 
         for (fn in fns) {
             var cParams = [for (p in fn.params) '${swiftTypeToCType(p.swiftType)} ${p.name}'];
@@ -506,24 +521,88 @@ class SwiftGenerator {
             buf.add("}\n\n");
         }
 
-        // Shared-memory array query functions
+        // Shared-memory query functions — typed accessors avoid serialization
+        // Helper macro pattern: GC setup, call, GC teardown
+        buf.add("// Array length\n");
         buf.add("int32_t haxe_bridge_array_length(const char* stateName) {\n");
-        buf.add("    int _gc_dummy = 0;\n");
-        buf.add("    hx::SetTopOfStack(&_gc_dummy, true);\n");
-        buf.add("    int32_t result = (int32_t)::sui::state::State_obj::_getArrayLength(::String(stateName));\n");
+        buf.add("    if (!stateName) return -1;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    int32_t r = (int32_t)::sui::state::State_obj::_getArrayLength(::String(stateName));\n");
         buf.add("    hx::SetTopOfStack((int*)0, true);\n");
-        buf.add("    return result;\n");
+        buf.add("    return r;\n");
         buf.add("}\n\n");
-        buf.add("const char* haxe_bridge_array_element(const char* stateName, int32_t index) {\n");
-        buf.add("    int _gc_dummy = 0;\n");
-        buf.add("    hx::SetTopOfStack(&_gc_dummy, true);\n");
-        buf.add("    ::String _hx_result = ::sui::state::State_obj::_getArrayElement(::String(stateName), (int)index);\n");
+
+        // String element
+        buf.add("const char* haxe_bridge_array_string_element(const char* stateName, int32_t index) {\n");
+        buf.add("    if (!stateName) return \"\";\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    ::String r = ::sui::state::State_obj::_getArrayStringElement(::String(stateName), (int)index);\n");
         buf.add("    static thread_local char _buf[4096];\n");
-        buf.add("    const char* _cstr = _hx_result.__CStr();\n");
-        buf.add("    strncpy(_buf, _cstr, sizeof(_buf) - 1);\n");
-        buf.add("    _buf[sizeof(_buf) - 1] = 0;\n");
+        buf.add("    strncpy(_buf, r.__CStr(), sizeof(_buf) - 1); _buf[sizeof(_buf) - 1] = 0;\n");
         buf.add("    hx::SetTopOfStack((int*)0, true);\n");
         buf.add("    return _buf;\n");
+        buf.add("}\n\n");
+
+        // Int element — no string conversion
+        buf.add("int32_t haxe_bridge_array_int_element(const char* stateName, int32_t index) {\n");
+        buf.add("    if (!stateName) return 0;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    int32_t r = (int32_t)::sui::state::State_obj::_getArrayIntElement(::String(stateName), (int)index);\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return r;\n");
+        buf.add("}\n\n");
+
+        // Float element — no string conversion
+        buf.add("double haxe_bridge_array_float_element(const char* stateName, int32_t index) {\n");
+        buf.add("    if (!stateName) return 0.0;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    double r = (double)::sui::state::State_obj::_getArrayFloatElement(::String(stateName), (int)index);\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return r;\n");
+        buf.add("}\n\n");
+
+        // Bool element — no string conversion
+        buf.add("bool haxe_bridge_array_bool_element(const char* stateName, int32_t index) {\n");
+        buf.add("    if (!stateName) return false;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    bool r = (bool)::sui::state::State_obj::_getArrayBoolElement(::String(stateName), (int)index);\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return r;\n");
+        buf.add("}\n\n");
+
+        // Object field accessors
+        buf.add("const char* haxe_bridge_object_field(const char* stateName, int32_t index, const char* fieldName) {\n");
+        buf.add("    if (!stateName || !fieldName) return \"\";\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    ::String r = ::sui::state::State_obj::_getObjectField(::String(stateName), (int)index, ::String(fieldName));\n");
+        buf.add("    static thread_local char _buf[4096];\n");
+        buf.add("    strncpy(_buf, r.__CStr(), sizeof(_buf) - 1); _buf[sizeof(_buf) - 1] = 0;\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return _buf;\n");
+        buf.add("}\n\n");
+
+        buf.add("int32_t haxe_bridge_object_int_field(const char* stateName, int32_t index, const char* fieldName) {\n");
+        buf.add("    if (!stateName || !fieldName) return 0;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    int32_t r = (int32_t)::sui::state::State_obj::_getObjectIntField(::String(stateName), (int)index, ::String(fieldName));\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return r;\n");
+        buf.add("}\n\n");
+
+        buf.add("double haxe_bridge_object_float_field(const char* stateName, int32_t index, const char* fieldName) {\n");
+        buf.add("    if (!stateName || !fieldName) return 0.0;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    double r = (double)::sui::state::State_obj::_getObjectFloatField(::String(stateName), (int)index, ::String(fieldName));\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return r;\n");
+        buf.add("}\n\n");
+
+        buf.add("bool haxe_bridge_object_bool_field(const char* stateName, int32_t index, const char* fieldName) {\n");
+        buf.add("    if (!stateName || !fieldName) return false;\n");
+        buf.add("    int _gc = 0; hx::SetTopOfStack(&_gc, true);\n");
+        buf.add("    bool r = (bool)::sui::state::State_obj::_getObjectBoolField(::String(stateName), (int)index, ::String(fieldName));\n");
+        buf.add("    hx::SetTopOfStack((int*)0, true);\n");
+        buf.add("    return r;\n");
         buf.add("}\n\n");
 
         for (fn in fns) {
@@ -608,15 +687,37 @@ class SwiftGenerator {
             buf.add("        haxe_bridge_invoke_action(Int32(id))\n");
             buf.add("    }\n\n");
         }
-        // Shared-memory array query wrappers
-        buf.add("    /// Query array length from hxcpp shared memory.\n");
+        // Shared-memory query wrappers — typed accessors
+        buf.add("    // MARK: - Shared Memory Array Queries\n\n");
         buf.add("    static func arrayLength(_ stateName: String) -> Int {\n");
         buf.add("        return Int(haxe_bridge_array_length(stateName.cString(using: .utf8)))\n");
         buf.add("    }\n\n");
-        buf.add("    /// Query array element from hxcpp shared memory.\n");
-        buf.add("    static func arrayElement(_ stateName: String, at index: Int) -> String {\n");
-        buf.add("        let cStr = haxe_bridge_array_element(stateName.cString(using: .utf8), Int32(index))\n");
-        buf.add("        return String(cString: cStr!)\n");
+        buf.add("    static func arrayStringElement(_ stateName: String, at index: Int) -> String {\n");
+        buf.add("        guard let cStr = haxe_bridge_array_string_element(stateName.cString(using: .utf8), Int32(index)) else { return \"\" }\n");
+        buf.add("        return String(cString: cStr)\n");
+        buf.add("    }\n\n");
+        buf.add("    static func arrayIntElement(_ stateName: String, at index: Int) -> Int {\n");
+        buf.add("        return Int(haxe_bridge_array_int_element(stateName.cString(using: .utf8), Int32(index)))\n");
+        buf.add("    }\n\n");
+        buf.add("    static func arrayFloatElement(_ stateName: String, at index: Int) -> Double {\n");
+        buf.add("        return haxe_bridge_array_float_element(stateName.cString(using: .utf8), Int32(index))\n");
+        buf.add("    }\n\n");
+        buf.add("    static func arrayBoolElement(_ stateName: String, at index: Int) -> Bool {\n");
+        buf.add("        return haxe_bridge_array_bool_element(stateName.cString(using: .utf8), Int32(index))\n");
+        buf.add("    }\n\n");
+        buf.add("    // MARK: - Shared Memory Object Field Queries\n\n");
+        buf.add("    static func objectField(_ stateName: String, at index: Int, field: String) -> String {\n");
+        buf.add("        guard let cStr = haxe_bridge_object_field(stateName.cString(using: .utf8), Int32(index), field.cString(using: .utf8)) else { return \"\" }\n");
+        buf.add("        return String(cString: cStr)\n");
+        buf.add("    }\n\n");
+        buf.add("    static func objectIntField(_ stateName: String, at index: Int, field: String) -> Int {\n");
+        buf.add("        return Int(haxe_bridge_object_int_field(stateName.cString(using: .utf8), Int32(index), field.cString(using: .utf8)))\n");
+        buf.add("    }\n\n");
+        buf.add("    static func objectFloatField(_ stateName: String, at index: Int, field: String) -> Double {\n");
+        buf.add("        return haxe_bridge_object_float_field(stateName.cString(using: .utf8), Int32(index), field.cString(using: .utf8))\n");
+        buf.add("    }\n\n");
+        buf.add("    static func objectBoolField(_ stateName: String, at index: Int, field: String) -> Bool {\n");
+        buf.add("        return haxe_bridge_object_bool_field(stateName.cString(using: .utf8), Int32(index), field.cString(using: .utf8))\n");
         buf.add("    }\n\n");
 
         for (fn in fns) {

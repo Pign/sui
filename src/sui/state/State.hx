@@ -46,41 +46,14 @@ class State<T> {
     private var _value:T;
     private var onChange:Null<T->Void>;
 
-    /** Registry of State instances by name, for C bridge query functions. **/
+    /** Registry of State instances by name, for shared-memory bridge queries. **/
     private static var _registry:Map<String, Dynamic> = new Map();
 
     public function new(initialValue:T, ?name:String) {
         this._value = initialValue;
         this.name = name != null ? name : "";
-        if (name != null && name != "")
-            _registry.set(name, this);
-    }
-
-    /** Get array length for a named state variable. Returns -1 if not an array. **/
-    public static function _getArrayLength(name:String):Int {
-        var state:Dynamic = _registry.get(name);
-        if (state == null)
-            return -1;
-        var val:Dynamic = state._value;
-        if (Std.isOfType(val, Array)) {
-            var arr:Array<Dynamic> = val;
-            return arr.length;
-        }
-        return -1;
-    }
-
-    /** Get string value of array element at index for a named state variable. **/
-    public static function _getArrayElement(name:String, index:Int):String {
-        var state:Dynamic = _registry.get(name);
-        if (state == null)
-            return "";
-        var val:Dynamic = state._value;
-        if (Std.isOfType(val, Array)) {
-            var arr:Array<Dynamic> = val;
-            if (index >= 0 && index < arr.length)
-                return Std.string(arr[index]);
-        }
-        return "";
+        if (this.name != "")
+            _registry.set(this.name, this);
     }
 
     function get_value():T {
@@ -94,7 +67,8 @@ class State<T> {
         }
         #if cpp
         var k = name;
-        var v = Std.string(newValue);
+        // For arrays, send empty string — Swift reads data via shared memory
+        var v = if (Std.isOfType(newValue, Array)) "" else Std.string(newValue);
         untyped __cpp__('_hxsui_notify_swift({0}.utf8_str(), {1}.utf8_str())', k, v);
         #end
         return newValue;
@@ -114,17 +88,114 @@ class State<T> {
         onChange = callback;
     }
 
+    /** Remove this state from the registry. Call when no longer needed. **/
+    public function dispose():Void {
+        if (name != "")
+            _registry.remove(name);
+    }
+
+    // ── Shared-memory query API (called from C bridge) ──────────────
+
+    /** Get array length for a named state. Returns -1 if not found or not an array. **/
+    public static function _getArrayLength(stateName:String):Int {
+        if (stateName == null) return -1;
+        var state:Dynamic = _registry.get(stateName);
+        if (state == null) return -1;
+        var val:Dynamic = state._value;
+        if (val == null) return 0;
+        if (Std.isOfType(val, Array)) {
+            var arr:Array<Dynamic> = val;
+            return arr.length;
+        }
+        return -1;
+    }
+
+    /** Get a string element from a named array state. **/
+    public static function _getArrayStringElement(stateName:String, index:Int):String {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return "";
+        var el:Dynamic = arr[index];
+        return el != null ? Std.string(el) : "";
+    }
+
+    /** Get an int element from a named array state. **/
+    public static function _getArrayIntElement(stateName:String, index:Int):Int {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return 0;
+        var el:Dynamic = arr[index];
+        return el != null ? cast(el, Int) : 0;
+    }
+
+    /** Get a float element from a named array state. **/
+    public static function _getArrayFloatElement(stateName:String, index:Int):Float {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return 0.0;
+        var el:Dynamic = arr[index];
+        return el != null ? cast(el, Float) : 0.0;
+    }
+
+    /** Get a bool element from a named array state. **/
+    public static function _getArrayBoolElement(stateName:String, index:Int):Bool {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return false;
+        var el:Dynamic = arr[index];
+        return el != null ? cast(el, Bool) : false;
+    }
+
+    /** Get a string field from an object at an index in a named array state. **/
+    public static function _getObjectField(stateName:String, index:Int, fieldName:String):String {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return "";
+        var obj:Dynamic = arr[index];
+        if (obj == null) return "";
+        var val:Dynamic = Reflect.field(obj, fieldName);
+        return val != null ? Std.string(val) : "";
+    }
+
+    /** Get an int field from an object at an index in a named array state. **/
+    public static function _getObjectIntField(stateName:String, index:Int, fieldName:String):Int {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return 0;
+        var obj:Dynamic = arr[index];
+        if (obj == null) return 0;
+        var val:Dynamic = Reflect.field(obj, fieldName);
+        return val != null ? cast(val, Int) : 0;
+    }
+
+    /** Get a float field from an object at an index in a named array state. **/
+    public static function _getObjectFloatField(stateName:String, index:Int, fieldName:String):Float {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return 0.0;
+        var obj:Dynamic = arr[index];
+        if (obj == null) return 0.0;
+        var val:Dynamic = Reflect.field(obj, fieldName);
+        return val != null ? cast(val, Float) : 0.0;
+    }
+
+    /** Get a bool field from an object at an index in a named array state. **/
+    public static function _getObjectBoolField(stateName:String, index:Int, fieldName:String):Bool {
+        var arr = _getArrayDynamic(stateName);
+        if (arr == null || index < 0 || index >= arr.length) return false;
+        var obj:Dynamic = arr[index];
+        if (obj == null) return false;
+        var val:Dynamic = Reflect.field(obj, fieldName);
+        return val != null ? cast(val, Bool) : false;
+    }
+
+    /** Internal: get the Dynamic array from a named state, or null. **/
+    private static function _getArrayDynamic(stateName:String):Array<Dynamic> {
+        if (stateName == null) return null;
+        var state:Dynamic = _registry.get(stateName);
+        if (state == null) return null;
+        var val:Dynamic = state._value;
+        if (val == null) return null;
+        if (Std.isOfType(val, Array)) return cast val;
+        return null;
+    }
+
     /**
         Update a SwiftUI state variable by name from Haxe.
-        Useful in bridge function closures to update multiple states at once:
-
-        ```haxe
-        new Button("Login", () -> {
-            var result = doLogin(email.get(), password.get());
-            State.setByName("userName", result.name);
-            State.setByName("isLoggedIn", "true");
-        })
-        ```
+        Useful in bridge function closures to update multiple states at once.
     **/
     public static function setByName(key:String, value:String):Void {
         #if cpp
