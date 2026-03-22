@@ -219,12 +219,66 @@ new Button("Login", () -> {
 
 Each `setByName` call immediately pushes the value to SwiftUI. This is the same mechanism that `.value =` uses internally, but lets you target any state variable by name without needing a direct reference to the `@:state` variable.
 
+## Complex Types: Shared Memory Bridge
+
+Arrays and objects stay in Haxe memory &mdash; Swift reads them directly via shared-memory queries instead of serializing copies.
+
+### Array State
+
+`@:state` arrays are automatically exposed to Swift as computed properties that read from hxcpp:
+
+```haxe
+@:state var emails:Array<String> = [];
+
+// Update in a closure — Swift sees the change immediately
+new Button("Fetch", () -> {
+    emails.value = fetchEmails();
+})
+```
+
+SwiftUI renders with typed access &mdash; `Array<Int>` elements pass as `int32_t` directly, no string conversion.
+
+### Object Arrays
+
+For arrays of objects, Swift can query individual fields without copying the entire object:
+
+```haxe
+@:state var users:Array<Dynamic> = [];
+
+// Populate with structured data
+new Button("Load", () -> {
+    users.value = [
+        {name: "Alice", age: 30, active: true},
+        {name: "Bob", age: 25, active: false},
+    ];
+})
+```
+
+The generated Swift queries fields on demand:
+```swift
+// Generated — reads directly from hxcpp memory
+HaxeBridgeC.objectField("users", at: index, field: "name")    // → String
+HaxeBridgeC.objectIntField("users", at: index, field: "age")  // → Int (no serialization)
+HaxeBridgeC.objectBoolField("users", at: index, field: "active") // → Bool
+```
+
+### Why Shared Memory?
+
+| | String serialization | Shared memory |
+|--|--|--|
+| Data copies | Full copy per update | Zero &mdash; reads from hxcpp |
+| Int/Float/Bool | String round-trip | Native types, no conversion |
+| Object fields | Serialize entire object | Query single field on demand |
+| Memory | Two copies (Haxe + Swift) | One copy (Haxe only) |
+| Mutations | Must re-serialize | Visible immediately |
+
 ## Key Points
 
 - **Most bridging is automatic** &mdash; closures and `@:state` updates just work
 - `@:expose` is only needed for named function exports callable from Swift expressions
 - `@:expose` functions must be `public static`
 - They can accept and return basic types (`String`, `Int`, `Float`, `Bool`)
+- Arrays and objects use shared memory &mdash; no serialization overhead
 - The generated bridge uses `HaxeBridgeC.functionName()` in Swift
 - Use `BridgeCallLoading` for operations that take time
 - Use `State.setByName()` to update multiple `@:state` variables from a single closure
