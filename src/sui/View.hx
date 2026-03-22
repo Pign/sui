@@ -131,8 +131,15 @@ class View {
         return this;
     }
 
-    public function animation(value:String):View {
-        modifierChain.push(ViewModifier.Animation(value));
+    /** Animate changes. Curve: "default", "easeIn", "easeOut", "easeInOut", "spring", "linear", "bouncy". **/
+    public function animation(curve:String, ?value:String):View {
+        modifierChain.push(ViewModifier.Animation(curve, value));
+        return this;
+    }
+
+    /** Transition for conditional view enter/exit: "slide", "opacity", "scale", "move", "push". **/
+    public function transition(style:String):View {
+        modifierChain.push(ViewModifier.Transition(style));
         return this;
     }
 

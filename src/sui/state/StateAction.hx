@@ -56,4 +56,20 @@ enum StateAction {
         ```
     **/
     BridgeCallLoading(stateName:String, loadingValue:String, functionName:String, args:Dynamic);
+
+    /**
+        Wrap any StateAction in a SwiftUI `withAnimation` block.
+
+        Curves: "default", "easeIn", "easeOut", "easeInOut", "spring", "linear", "bouncy"
+
+        ```haxe
+        StateAction.Animated(StateAction.Toggle("showDetail"), "spring")
+        ```
+
+        Generates:
+        ```swift
+        withAnimation(.spring) { showDetail.toggle() }
+        ```
+    **/
+    Animated(action:StateAction, curve:String);
 }
