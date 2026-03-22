@@ -1,13 +1,13 @@
 # Examples
 
-sui includes 13 example apps demonstrating different features. Each is a complete, runnable project in the `examples/` directory.
+sui includes 17 example apps demonstrating different features. Each is a complete, runnable project in the `examples/` directory.
 
 ## All Examples
 
 | Example | Key Features | Complexity |
 |---------|-------------|------------|
 | [hello-world](examples/hello-world.md) | Text, VStack, Spacer, modifiers | Beginner |
-| [counter](examples/counter.md) | State, Button, StateAction, Text.withState | Beginner |
+| [counter](examples/counter.md) | @:state, Button, StateAction, Text.withState | Beginner |
 | [todo-app](examples/todo-app.md) | Observable, ForEach, Form, CustomSwift | Intermediate |
 | navigation | NavigationStack, NavigationLink | Beginner |
 | modifiers-demo | TextField, Toggle, Slider, Sheet, Alert | Intermediate |
@@ -19,6 +19,10 @@ sui includes 13 example apps demonstrating different features. Each is a complet
 | settings-demo | Form, ScrollView, Sections | Beginner |
 | visionos-cube | visionOS APIs | Advanced |
 | normal-haxe | Closures, onAppear, task, onDisappear | Intermediate |
+| form-demo | Stepper, DatePicker, Gauge, ProgressView, GroupBox, Link | Intermediate |
+| visual-effects | blur, scaleEffect, rotationEffect, state-bound modifiers | Intermediate |
+| grid-gallery | LazyVGrid, ContentUnavailableView, ConditionalView, gestures | Intermediate |
+| image-filters | brightness, contrast, saturation, grayscale, sliders | Intermediate |
 
 ## Running an Example
 
