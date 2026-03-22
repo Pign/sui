@@ -40,30 +40,30 @@ an array of basic types, or a class extending Observable.
 | `.value` | Read the current value (Haxe side) |
 | `.value = newValue` | Update the value and notify SwiftUI |
 
-The variable name is used directly in `StateAction`, `Text.withState`, and binding references.
+The variable name is used directly in fluent `StateAction` calls, `Text.withState`, and binding references.
 
 ## StateAction
 
-`StateAction` provides declarative state mutations that generate inline Swift code.
+`StateAction` provides declarative state mutations that generate inline Swift code. Actions use a fluent API where you call methods directly on typed state references.
 
 ### Arithmetic
 
 ```haxe
-StateAction.Increment("count", 1)    // count += 1
-StateAction.Decrement("count", 1)    // count -= 1
+count.inc(1)    // count += 1
+count.dec(1)    // count -= 1
 ```
 
 ### Assignment
 
 ```haxe
-StateAction.SetValue("name", "Haxe")  // name = "Haxe"
-StateAction.Toggle("isOn")            // isOn.toggle()
+name.setTo("Haxe")  // name = "Haxe"
+isOn.tog()           // isOn.toggle()
 ```
 
 ### Array Operations
 
 ```haxe
-StateAction.Append("items", newItem)   // items.append(newItem)
+items.appendAction(newItem)   // items.append(newItem)
 ```
 
 ### Custom Swift
@@ -80,22 +80,22 @@ Call `@:expose` functions from Swift:
 
 ```haxe
 // Synchronous
-StateAction.BridgeCall("result", "greet", "World")
+StateAction.BridgeCall(result, "greet", "World")
 // → result = HaxeBridgeC.greet("World")
 
 // Async with loading state
-StateAction.BridgeCallLoading("result", "Loading...", "fetchUrl", "https://example.com")
+StateAction.BridgeCallLoading(result, "Loading...", "fetchUrl", "https://example.com")
 // → result = "Loading..."; Task { result = HaxeBridgeC.fetchUrl("https://example.com") }
 
-// Animated — wraps any action in withAnimation
-StateAction.Animated(StateAction.Toggle("showDetail"), "spring")
+// Animated — chain .animated() on any action
+showDetail.tog().animated(AnimationCurve.Spring)
 // → withAnimation(.spring) { showDetail.toggle() }
 
-StateAction.Animated(StateAction.Increment("count", 1), "easeInOut")
+count.inc(1).animated(AnimationCurve.EaseInOut)
 // → withAnimation(.easeInOut) { count += 1 }
 ```
 
-**Animation curves:** `"default"`, `"easeIn"`, `"easeOut"`, `"easeInOut"`, `"spring"`, `"linear"`, `"bouncy"`
+**Animation curves:** Use the `AnimationCurve` enum: `AnimationCurve.Default`, `AnimationCurve.EaseIn`, `AnimationCurve.EaseOut`, `AnimationCurve.EaseInOut`, `AnimationCurve.Spring`, `AnimationCurve.Linear`, `AnimationCurve.Bouncy`
 
 ## Text.withState
 
@@ -127,13 +127,13 @@ class CounterApp extends App {
                 .padding(),
             new HStack(null, 20, [
                 new Button("-", () -> count.value = count.value - 1,
-                    StateAction.Decrement("count", 1)),
+                    count.dec(1)),
                 new Button("+", () -> count.value = count.value + 1,
-                    StateAction.Increment("count", 1))
+                    count.inc(1))
             ])
         ]);
     }
 }
 ```
 
-The `StateAction` handles the Swift-side state mutation for immediate UI updates. The closure runs the same logic on the Haxe/C++ side. Both are optional &mdash; use whichever fits your use case.
+The fluent `StateAction` (e.g. `count.dec(1)`) handles the Swift-side state mutation for immediate UI updates. The closure runs the same logic on the Haxe/C++ side. Both are optional &mdash; use whichever fits your use case.

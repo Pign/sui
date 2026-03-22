@@ -156,10 +156,10 @@ new VStack([...])
 
 ```haxe
 new Text("Tap me")
-    .onTapGesture(StateAction.SetValue("selected", "true"))
+    .onTapGesture(selected.setTo("true"))
 
 new Text("Hold me")
-    .onLongPressGesture(StateAction.Toggle("showMenu"))
+    .onLongPressGesture(showMenu.tog())
 ```
 
 ## Lifecycle
@@ -181,7 +181,7 @@ new List([...])
     .listStyle("inset")
 
 new VStack([...])
-    .taskAction(StateAction.BridgeCallLoading("data", "Loading...", "fetchData", ""))
+    .taskAction(StateAction.BridgeCallLoading(data, "Loading...", "fetchData", ""))
 ```
 
 ## Accessibility
@@ -194,10 +194,10 @@ new VStack([...])
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.animation(curve, ?value)` | `curve: String`, `value: StateOr<Float>` | Animate changes with a named curve |
+| `.animation(curve, ?value)` | `curve: AnimationCurve`, `value: StateOr<Float>` | Animate changes with an `AnimationCurve` enum value |
 | `.transition(style)` | `style: String` | Enter/exit transition for conditional views |
 
-**Animation curves:** `"default"`, `"easeIn"`, `"easeOut"`, `"easeInOut"`, `"spring"`, `"linear"`, `"bouncy"`
+**Animation curves:** `AnimationCurve.Default`, `AnimationCurve.EaseIn`, `AnimationCurve.EaseOut`, `AnimationCurve.EaseInOut`, `AnimationCurve.Spring`, `AnimationCurve.Linear`, `AnimationCurve.Bouncy`
 
 **Transition styles:** `"slide"`, `"opacity"`, `"scale"`, `"move"`, `"push"`
 
@@ -205,7 +205,7 @@ new VStack([...])
 // Animate when a State<Float> reference changes
 new Text("Hello")
     .scaleEffect(scale)
-    .animation("spring", scale)
+    .animation(AnimationCurve.Spring, scale)
 
 // Transition on conditional views
 new ConditionalView("showDetail",
@@ -216,21 +216,21 @@ new ConditionalView("showDetail",
 
 ### Animated State Mutations
 
-Wrap any `StateAction` in `StateAction.Animated` to animate the change:
+Chain `.animated()` on any fluent `StateAction` to animate the change. Use the `AnimationCurve` enum for the curve:
 
 ```haxe
 // Without animation — instant
-new Button("Toggle", null, StateAction.Toggle("expanded"))
+new Button("Toggle", null, expanded.tog())
 
 // With animation — smooth spring
 new Button("Toggle", null,
-    StateAction.Animated(StateAction.Toggle("expanded"), "spring"))
+    expanded.tog().animated(AnimationCurve.Spring))
 ```
 
 Works with any action:
 
 ```haxe
-StateAction.Animated(StateAction.Increment("count", 1), "easeInOut")
-StateAction.Animated(StateAction.SetValue("scale", 1.5), "spring")
-StateAction.Animated(StateAction.CustomSwift("offset = offset == 0 ? 50 : 0"), "bouncy")
+count.inc(1).animated(AnimationCurve.EaseInOut)
+scale.setTo(1.5).animated(AnimationCurve.Spring)
+StateAction.CustomSwift("offset = offset == 0 ? 50 : 0").animated(AnimationCurve.Bouncy)
 ```

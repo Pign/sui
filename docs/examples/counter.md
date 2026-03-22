@@ -1,6 +1,6 @@
 # Counter
 
-A counter app demonstrating state management with `@:state`, `StateAction`, and `Text.withState`.
+A counter app demonstrating state management with `@:state`, the fluent `StateAction` API, and `Text.withState`.
 
 ## Full Source
 
@@ -29,9 +29,9 @@ class CounterApp extends App {
                 .padding(),
             new HStack(null, 20, [
                 new Button("-", () -> count.value = count.value - 1,
-                    StateAction.Decrement("count", 1)),
+                    count.dec(1)),
                 new Button("+", () -> count.value = count.value + 1,
-                    StateAction.Increment("count", 1))
+                    count.inc(1))
             ])
         ]);
     }
@@ -60,15 +60,15 @@ Text.withState("Count: {count}")
 
 ```haxe
 new Button("-", () -> count.value = count.value - 1,
-    StateAction.Decrement("count", 1))
+    count.dec(1))
 ```
 
 Each button has two actions:
 
 1. **Haxe closure** `() -> count.value = count.value - 1` &mdash; Runs on the Haxe/C++ side, bridged automatically (no `@:expose` needed)
-2. **StateAction** `StateAction.Decrement("count", 1)` &mdash; Generates Swift `count -= 1` for immediate UI update
+2. **Fluent StateAction** `count.dec(1)` &mdash; Generates Swift `count -= 1` for immediate UI update
 
-Both are optional. Use `StateAction` for instant SwiftUI updates, closures for Haxe-side logic.
+Both are optional. Use the fluent `StateAction` API for instant SwiftUI updates, closures for Haxe-side logic.
 
 ### Layout
 
