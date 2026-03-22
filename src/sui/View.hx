@@ -171,26 +171,26 @@ class View {
         return this;
     }
 
-    /** Apply a blur effect. **/
-    public function blur(radius:Float):View {
+    /** Apply a blur effect. Pass a Float for static, or a String state name for dynamic. **/
+    public function blur(radius:Dynamic):View {
         modifierChain.push(ViewModifier.Blur(radius));
         return this;
     }
 
-    /** Scale the view. **/
-    public function scaleEffect(scale:Float):View {
+    /** Scale the view. Pass a Float for static, or a String state name for dynamic. **/
+    public function scaleEffect(scale:Dynamic):View {
         modifierChain.push(ViewModifier.ScaleEffect(scale));
         return this;
     }
 
-    /** Rotate the view in degrees. **/
-    public function rotationEffect(degrees:Float):View {
+    /** Rotate the view in degrees. Pass a Float for static, or a String state name for dynamic. **/
+    public function rotationEffect(degrees:Dynamic):View {
         modifierChain.push(ViewModifier.RotationEffect(degrees));
         return this;
     }
 
-    /** Offset the view position. **/
-    public function offset(x:Float, y:Float):View {
+    /** Offset the view position. Pass Floats for static, or String state names for dynamic. **/
+    public function offset(x:Dynamic, y:Dynamic):View {
         modifierChain.push(ViewModifier.Offset(x, y));
         return this;
     }

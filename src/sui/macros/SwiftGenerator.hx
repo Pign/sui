@@ -1736,20 +1736,20 @@ class SwiftGenerator {
                 var s = if (args.length > 0) extractString(args[0]) else null;
                 s != null ? 'tag("${esc(s)}")' : 'tag("")';
 
-            // --- Visual effects ---
+            // --- Visual effects (accept constants or state variable names) ---
             case "blur":
-                var r = if (args.length > 0) extractConstant(args[0]) else "3";
-                'blur(radius: ${r != null ? r : "3"})';
+                var v = resolveModifierValue(args, 0, "3");
+                'blur(radius: $v)';
             case "scaleEffect":
-                var s = if (args.length > 0) extractConstant(args[0]) else "1.0";
-                'scaleEffect(${s != null ? s : "1.0"})';
+                var v = resolveModifierValue(args, 0, "1.0");
+                'scaleEffect($v)';
             case "rotationEffect":
-                var d = if (args.length > 0) extractConstant(args[0]) else "0";
-                'rotationEffect(.degrees(${d != null ? d : "0"}))';
+                var v = resolveModifierValue(args, 0, "0");
+                'rotationEffect(.degrees($v))';
             case "offset":
-                var x = if (args.length > 0) extractConstant(args[0]) else "0";
-                var y = if (args.length > 1) extractConstant(args[1]) else "0";
-                'offset(x: ${x != null ? x : "0"}, y: ${y != null ? y : "0"})';
+                var x = resolveModifierValue(args, 0, "0");
+                var y = resolveModifierValue(args, 1, "0");
+                'offset(x: $x, y: $y)';
 
             // --- Presentation ---
             case "fullScreenCover":
@@ -1842,6 +1842,24 @@ class SwiftGenerator {
     }
 
     /** Extract bridge call arguments: supports a single string or an array of constants. **/
+    /** Resolve a modifier argument: number (literal) or string (state variable name, emitted bare). **/
+    static function resolveModifierValue(args:Array<haxe.macro.Type.TypedExpr>, index:Int, defaultVal:String):String {
+        if (index >= args.length) return defaultVal;
+        var e = unwrap(args[index]);
+        switch (e.expr) {
+            case TConst(c):
+                switch (c) {
+                    case TInt(v): return Std.string(v);
+                    case TFloat(v): return v;
+                    case TBool(b): return b ? "true" : "false";
+                    case TString(s): return s; // state variable name — emit bare, no quotes
+                    default:
+                }
+            default:
+        }
+        return defaultVal;
+    }
+
     static function extractBridgeArgs(expr:haxe.macro.Type.TypedExpr):String {
         if (expr == null) return "";
         var e = unwrap(expr);

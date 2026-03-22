@@ -68,11 +68,11 @@ enum ViewModifier {
     Badge(value:Dynamic);
     Tag(value:String);
 
-    // Visual Effects
-    Blur(radius:Float);
-    ScaleEffect(scale:Float);
-    RotationEffect(degrees:Float);
-    Offset(x:Float, y:Float);
+    // Visual Effects (accept Float for static or String for state-bound)
+    Blur(radius:Dynamic);
+    ScaleEffect(scale:Dynamic);
+    RotationEffect(degrees:Dynamic);
+    Offset(x:Dynamic, y:Dynamic);
 
     // Presentation
     FullScreenCover(isPresentedBinding:String, content:sui.View);

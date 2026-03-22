@@ -4,8 +4,11 @@ import sui.ui.*;
 import sui.state.StateAction;
 
 /**
-    Demonstrates visual effect modifiers: blur, scaleEffect,
-    rotationEffect, offset, contextMenu, and accessibilityLabel.
+    Demonstrates visual effect modifiers bound to state:
+    blur, scaleEffect, rotationEffect, offset, and accessibilityLabel.
+
+    Pass a state variable name (string) to a modifier to bind it dynamically.
+    Pass a number for a static value.
 **/
 class EffectsApp extends App {
     static function main() {}
@@ -27,12 +30,13 @@ class EffectsApp extends App {
                 .font(FontStyle.LargeTitle)
                 .padding(),
 
-            // Transformed text
+            // Text with state-bound visual effects
             Text.withState("{message}")
                 .font(FontStyle.Title)
                 .foregroundColor(ColorValue.Blue)
-                .scaleEffect(1.5)
-                .rotationEffect(45.0)
+                .scaleEffect("scale")
+                .rotationEffect("rotation")
+                .blur("blurAmount")
                 .padding(),
 
             // Controls
@@ -50,13 +54,14 @@ class EffectsApp extends App {
                 ])
             ]),
 
-            // Card with effects applied
+            // Card with static effects
             new GroupBox("Preview", [
-                new Text("Tap and hold me for options")
+                new Text("Static effects: rotated 10 degrees")
                     .padding()
                     .background(ColorValue.Blue)
                     .foregroundColor(ColorValue.White)
                     .cornerRadius(8)
+                    .rotationEffect(10.0)
                     .accessibilityLabel("Interactive preview card")
             ])
         ]);
