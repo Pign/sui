@@ -45,9 +45,9 @@ class HelloApp extends App {
 ## Get Started
 
 - **[Getting Started](getting-started.md)** &mdash; Install, create a project, build, and run.
-- **[Views](views/README.md)** &mdash; All 22 built-in views.
-- **[Modifiers](modifiers.md)** &mdash; 27+ view modifiers reference.
+- **[Views](views/README.md)** &mdash; 40+ built-in views.
+- **[Modifiers](modifiers.md)** &mdash; 58+ view modifiers reference.
 - **[State](state/README.md)** &mdash; State management, bindings, and observables.
 - **[Bridge](bridge.md)** &mdash; Transparent Haxe/C++ bridge (automatic closures + explicit exports).
 - **[Native Extensions](native-extensions.md)** &mdash; Custom Swift files and SPM packages.
-- **[Examples](examples/README.md)** &mdash; 13 annotated example apps.
+- **[Examples](examples/README.md)** &mdash; 17 example apps.

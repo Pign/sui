@@ -18,6 +18,8 @@ new Text("Styled")
 | `.padding(value)` | `value: Float` | Fixed padding on all edges |
 | `.frame(width, height, alignment)` | `width: Float`, `height: Float`, `alignment: Alignment` | All optional. Sets size constraints |
 | `.overlay(content)` | `content: View` | Overlays another view on top |
+| `.aspectRatio(ratio, contentMode)` | `ratio: Float`, `contentMode: String` | Constrain proportions (`"fit"` or `"fill"`) |
+| `.offset(x, y)` | `x: Dynamic`, `y: Dynamic` | Offset view position (Float or state name) |
 
 **Alignment values:** `Center`, `Leading`, `Trailing`, `Top`, `Bottom`, `TopLeading`, `TopTrailing`, `BottomLeading`, `BottomTrailing`
 
@@ -55,7 +57,7 @@ new Text("Styled")
 | `.foregroundColor(color)` | `color: ColorValue` | Text/icon color |
 | `.background(color)` | `color: ColorValue` | Background color |
 | `.opacity(value)` | `value: Float` | Opacity (0.0 to 1.0) |
-| `.cornerRadius(radius)` | `radius: Float` | Rounds corners |
+| `.tint(color)` | `color: ColorValue` | Accent/tint color |
 
 **ColorValue values:** `Primary`, `Secondary`, `Accent`, `Red`, `Orange`, `Yellow`, `Green`, `Blue`, `Purple`, `Pink`, `White`, `Black`, `Gray`, `Clear`, `Custom(hex)`
 
@@ -73,12 +75,38 @@ new Text("Custom color")
 
 **ShapeType values:** `Rectangle`, `RoundedRectangle(cornerRadius)`, `Circle`, `Capsule`
 
+## Visual Effects
+
+Pass a `Float` for a static value, or a `String` state variable name for dynamic binding.
+
+| Modifier | Parameters | Description |
+|----------|-----------|-------------|
+| `.blur(radius)` | `radius: Dynamic` | Gaussian blur |
+| `.scaleEffect(scale)` | `scale: Dynamic` | Scale transform |
+| `.rotationEffect(degrees)` | `degrees: Dynamic` | Rotation in degrees |
+| `.brightness(amount)` | `amount: Dynamic` | Adjust brightness (-1 to 1) |
+| `.contrast(amount)` | `amount: Dynamic` | Adjust contrast |
+| `.saturation(amount)` | `amount: Dynamic` | Adjust saturation |
+| `.grayscale(amount)` | `amount: Dynamic` | Grayscale (0 to 1) |
+
+```haxe
+// Static value
+new Image("photo").blur(5.0)
+
+// State-bound — changes when slider moves
+new Image("photo").blur("blurAmount")
+```
+
 ## Navigation
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
 | `.navigationTitle(title)` | `title: String` | Sets the navigation bar title |
 | `.navigationDestination(content)` | `content: View` | Destination for navigation |
+| `.toolbar(content)` | `content: View` | Adds toolbar items |
+| `.toolbarItem(placement, content)` | `placement: String`, `content: View` | Toolbar item with placement |
+
+**Placement values:** `topBarTrailing`, `topBarLeading`, `bottomBar`, `automatic`
 
 ## Interaction
 
@@ -86,77 +114,79 @@ new Text("Custom color")
 |----------|-----------|-------------|
 | `.disabled(isDisabled)` | `isDisabled: Bool` | Disables interaction (default: `true`) |
 | `.searchable(textBinding, prompt)` | `textBinding: String`, `prompt: String` | Adds a search bar |
-
-```haxe
-new List([...])
-    .searchable("searchText", "Search items...")
-```
+| `.badge(value)` | `value: Dynamic` | Badge on tab items or list rows |
+| `.tag(value)` | `value: String` | Tag for Picker selection matching |
 
 ## Style
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
 | `.textFieldStyle(style)` | `style: TextFieldStyleValue` | `.Automatic`, `.RoundedBorder`, `.Plain` |
+| `.listStyle(style)` | `style: String` | `"inset"`, `"grouped"`, `"plain"`, `"sidebar"` |
 
 ## Presentation
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.sheet(isPresentedBinding, content)` | `isPresentedBinding: String`, `content: View` | Modal sheet |
-| `.alert(title, isPresentedBinding, message)` | `title: String`, `isPresentedBinding: String`, `message: String` | Alert dialog |
-| `.confirmationDialog(title, isPresentedBinding, content)` | `title: String`, `isPresentedBinding: String`, `content: View` | Confirmation dialog |
-| `.toolbar(content)` | `content: View` | Adds toolbar items |
+| `.sheet(binding, content)` | `binding: String`, `content: View` | Modal sheet |
+| `.fullScreenCover(binding, content)` | `binding: String`, `content: View` | Full-screen modal |
+| `.popover(binding, content)` | `binding: String`, `content: View` | Popover |
+| `.alert(title, binding, message)` | `title: String`, `binding: String`, `message: String` | Alert dialog |
+| `.confirmationDialog(title, binding, content)` | `title: String`, `binding: String`, `content: View` | Action sheet |
+| `.contextMenu(content)` | `content: View` | Long-press context menu |
 
 ```haxe
 new VStack([...])
     .sheet("showSheet", new Text("Sheet content"))
     .alert("Warning", "showAlert", "Are you sure?")
+    .contextMenu(new Button("Delete", null, StateAction.CustomSwift("deleteItem()")))
 ```
-
-## Animation
-
-| Modifier | Parameters | Description |
-|----------|-----------|-------------|
-| `.animation(value)` | `value: String` | Animation curve (e.g. `"default"`, `"easeIn"`, `"spring"`) |
-| `.tint(color)` | `color: ColorValue` | Set accent/tint color for this view |
-| `.badge(value)` | `value: Dynamic` | Badge on tab items or list rows |
-| `.tag(value)` | `value: String` | Tag for Picker selection matching |
 
 ## Gestures
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
 | `.onTapGesture(action)` | `action: StateAction` | Runs a StateAction when tapped |
+| `.onLongPressGesture(action)` | `action: StateAction` | Runs a StateAction on long press |
 
 ```haxe
-// Set state on tap
-new Text("Select me")
+new Text("Tap me")
     .onTapGesture(StateAction.SetValue("selected", "true"))
 
-// Use with ForEach for interactive lists
-new ForEach("items", "i",
-    new Text("{items[i].name}")
-        .onTapGesture(StateAction.SetValue("selectedItem", "{items[i].id}"))
-)
+new Text("Hold me")
+    .onLongPressGesture(StateAction.Toggle("showMenu"))
 ```
 
 ## Lifecycle
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.onAppear(action)` | `action: () -> Void` | Called when the view appears |
-| `.onDisappear(action)` | `action: () -> Void` | Called when the view disappears |
-| `.task(action)` | `action: () -> Void` | Async task that runs on appear |
+| `.onAppear(action)` | `action: () -> Void` | Closure when view appears |
+| `.onDisappear(action)` | `action: () -> Void` | Closure when view disappears |
+| `.task(action)` | `action: () -> Void` | Async closure on appear |
+| `.onAppearAction(action)` | `action: StateAction` | StateAction on appear |
+| `.taskAction(action)` | `action: StateAction` | StateAction async on appear |
+| `.onSubmit(action)` | `action: () -> Void` | Closure on form/text submit |
+| `.refreshable(action)` | `action: () -> Void` | Pull-to-refresh closure |
+| `.swipeActions(content)` | `content: View` | Swipe actions on list rows |
 
 ```haxe
+new List([...])
+    .refreshable(() -> loadData())
+    .listStyle("inset")
+
 new VStack([...])
-    .onAppear(() -> trace("View appeared"))
-    .onDisappear(() -> trace("View disappeared"))
-    .task(() -> {
-        // Runs when view appears, good for loading data
-        myState.value = "Loading...";
-        var http = new haxe.Http("https://example.com");
-        http.onData = (d) -> myState.value = d;
-        http.request(false);
-    })
+    .taskAction(StateAction.BridgeCallLoading("data", "Loading...", "fetchData", ""))
 ```
+
+## Accessibility
+
+| Modifier | Parameters | Description |
+|----------|-----------|-------------|
+| `.accessibilityLabel(label)` | `label: String` | Screen reader label |
+
+## Animation
+
+| Modifier | Parameters | Description |
+|----------|-----------|-------------|
+| `.animation(value)` | `value: String` | Animation curve (`"default"`, `"easeIn"`, `"spring"`) |
