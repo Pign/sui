@@ -68,6 +68,27 @@ enum ViewModifier {
     Badge(value:Dynamic);
     Tag(value:String);
 
+    // Visual Effects
+    Blur(radius:Float);
+    ScaleEffect(scale:Float);
+    RotationEffect(degrees:Float);
+    Offset(x:Float, y:Float);
+
+    // Presentation
+    FullScreenCover(isPresentedBinding:String, content:sui.View);
+    ContextMenu(content:sui.View);
+
+    // List
+    SwipeActions(content:sui.View);
+    Refreshable(actionId:Int);
+    ListStyle(style:String);
+
+    // Layout
+    AspectRatio(ratio:Null<Float>, contentMode:String);
+
+    // Accessibility
+    AccessibilityLabel(label:String);
+
     // Spacing
     FixedSize(horizontal:Bool, vertical:Bool);
 }

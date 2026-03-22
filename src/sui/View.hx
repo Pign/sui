@@ -171,6 +171,74 @@ class View {
         return this;
     }
 
+    /** Apply a blur effect. **/
+    public function blur(radius:Float):View {
+        modifierChain.push(ViewModifier.Blur(radius));
+        return this;
+    }
+
+    /** Scale the view. **/
+    public function scaleEffect(scale:Float):View {
+        modifierChain.push(ViewModifier.ScaleEffect(scale));
+        return this;
+    }
+
+    /** Rotate the view in degrees. **/
+    public function rotationEffect(degrees:Float):View {
+        modifierChain.push(ViewModifier.RotationEffect(degrees));
+        return this;
+    }
+
+    /** Offset the view position. **/
+    public function offset(x:Float, y:Float):View {
+        modifierChain.push(ViewModifier.Offset(x, y));
+        return this;
+    }
+
+    /** Present a full-screen modal. **/
+    public function fullScreenCover(isPresentedBinding:String, content:View):View {
+        modifierChain.push(ViewModifier.FullScreenCover(isPresentedBinding, content));
+        return this;
+    }
+
+    /** Add a long-press context menu. **/
+    public function contextMenu(content:View):View {
+        modifierChain.push(ViewModifier.ContextMenu(content));
+        return this;
+    }
+
+    /** Add swipe actions to a list row. **/
+    public function swipeActions(content:View):View {
+        modifierChain.push(ViewModifier.SwipeActions(content));
+        return this;
+    }
+
+    /** Add pull-to-refresh to a list. **/
+    public function refreshable(action:() -> Void):View {
+        var actionId = sui.ui.Button._nextActionId++;
+        sui.ui.Button._actionRegistry.set(actionId, action);
+        modifierChain.push(ViewModifier.Refreshable(actionId));
+        return this;
+    }
+
+    /** Set list style (inset, grouped, plain, sidebar). **/
+    public function listStyle(style:String):View {
+        modifierChain.push(ViewModifier.ListStyle(style));
+        return this;
+    }
+
+    /** Constrain aspect ratio. **/
+    public function aspectRatio(?ratio:Float, contentMode:String = "fit"):View {
+        modifierChain.push(ViewModifier.AspectRatio(ratio, contentMode));
+        return this;
+    }
+
+    /** Set accessibility label. **/
+    public function accessibilityLabel(label:String):View {
+        modifierChain.push(ViewModifier.AccessibilityLabel(label));
+        return this;
+    }
+
     /** Run a StateAction when the view appears. **/
     public function onAppearAction(action:sui.state.StateAction):View {
         modifierChain.push(ViewModifier.OnAppearAction(action));
