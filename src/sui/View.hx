@@ -178,26 +178,26 @@ class View {
         return this;
     }
 
-    /** Apply a blur effect. Pass a Float for static, or a String state name for dynamic. **/
-    public function blur(radius:Dynamic):View {
+    /** Apply a blur effect. Pass a Float or a State<Float>. **/
+    public function blur(radius:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Blur(radius));
         return this;
     }
 
-    /** Scale the view. Pass a Float for static, or a String state name for dynamic. **/
-    public function scaleEffect(scale:Dynamic):View {
+    /** Scale the view. Pass a Float or a State<Float>. **/
+    public function scaleEffect(scale:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.ScaleEffect(scale));
         return this;
     }
 
-    /** Rotate the view in degrees. Pass a Float for static, or a String state name for dynamic. **/
-    public function rotationEffect(degrees:Dynamic):View {
+    /** Rotate the view in degrees. Pass a Float or a State<Float>. **/
+    public function rotationEffect(degrees:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.RotationEffect(degrees));
         return this;
     }
 
-    /** Offset the view position. Pass Floats for static, or String state names for dynamic. **/
-    public function offset(x:Dynamic, y:Dynamic):View {
+    /** Offset the view position. Pass Floats or State<Float>s. **/
+    public function offset(x:sui.state.StateOr<Float>, y:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Offset(x, y));
         return this;
     }
@@ -246,26 +246,26 @@ class View {
         return this;
     }
 
-    /** Adjust brightness. Pass Float for static, String state name for dynamic. **/
-    public function brightness(amount:Dynamic):View {
+    /** Adjust brightness. Pass a Float or a State<Float>. **/
+    public function brightness(amount:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Brightness(amount));
         return this;
     }
 
-    /** Adjust contrast. Pass Float for static, String state name for dynamic. **/
-    public function contrast(amount:Dynamic):View {
+    /** Adjust contrast. Pass a Float or a State<Float>. **/
+    public function contrast(amount:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Contrast(amount));
         return this;
     }
 
-    /** Adjust color saturation. Pass Float for static, String state name for dynamic. **/
-    public function saturation(amount:Dynamic):View {
+    /** Adjust color saturation. Pass a Float or a State<Float>. **/
+    public function saturation(amount:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Saturation(amount));
         return this;
     }
 
-    /** Apply grayscale effect. Pass Float for static, String state name for dynamic. **/
-    public function grayscale(amount:Dynamic):View {
+    /** Apply grayscale effect. Pass a Float or a State<Float>. **/
+    public function grayscale(amount:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Grayscale(amount));
         return this;
     }

@@ -34,9 +34,9 @@ class EffectsApp extends App {
             Text.withState("{message}")
                 .font(FontStyle.Title)
                 .foregroundColor(ColorValue.Blue)
-                .scaleEffect("scale")
-                .rotationEffect("rotation")
-                .blur("blurAmount")
+                .scaleEffect(scale)
+                .rotationEffect(rotation)
+                .blur(blurAmount)
                 .padding(),
 
             // Controls
