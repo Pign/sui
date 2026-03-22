@@ -239,6 +239,50 @@ class View {
         return this;
     }
 
+    /** Adjust brightness. **/
+    public function brightness(amount:Float):View {
+        modifierChain.push(ViewModifier.Brightness(amount));
+        return this;
+    }
+
+    /** Adjust contrast. **/
+    public function contrast(amount:Float):View {
+        modifierChain.push(ViewModifier.Contrast(amount));
+        return this;
+    }
+
+    /** Adjust color saturation. **/
+    public function saturation(amount:Float):View {
+        modifierChain.push(ViewModifier.Saturation(amount));
+        return this;
+    }
+
+    /** Apply grayscale effect. **/
+    public function grayscale(amount:Float):View {
+        modifierChain.push(ViewModifier.Grayscale(amount));
+        return this;
+    }
+
+    /** Present a popover. **/
+    public function popover(isPresentedBinding:String, content:View):View {
+        modifierChain.push(ViewModifier.Popover(isPresentedBinding, content));
+        return this;
+    }
+
+    /** Run a closure on form/text field submit. **/
+    public function onSubmit(action:() -> Void):View {
+        var actionId = sui.ui.Button._nextActionId++;
+        sui.ui.Button._actionRegistry.set(actionId, action);
+        modifierChain.push(ViewModifier.OnSubmit(actionId));
+        return this;
+    }
+
+    /** Long press gesture with a StateAction. **/
+    public function onLongPressGesture(action:sui.state.StateAction):View {
+        modifierChain.push(ViewModifier.OnLongPressGesture(action));
+        return this;
+    }
+
     /** Run a StateAction when the view appears. **/
     public function onAppearAction(action:sui.state.StateAction):View {
         modifierChain.push(ViewModifier.OnAppearAction(action));
