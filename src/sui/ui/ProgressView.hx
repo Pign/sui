@@ -22,7 +22,7 @@ class ProgressView extends View {
     public var valueBinding:String;
     public var total:Float;
 
-    public function new(?@:swiftLabel("_") label:String, ?@:swiftLabel("value") @:swiftBinding valueBinding:String, ?@:swiftLabel("total") total:Float) {
+    public function new(@:swiftLabel("_") ?label:String, @:swiftLabel("value") @:swiftBinding ?valueBinding:String, @:swiftLabel("total") ?total:Float) {
         super();
         this.viewType = "ProgressView";
         this.label = label;
