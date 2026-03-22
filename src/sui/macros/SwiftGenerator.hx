@@ -215,6 +215,9 @@ class SwiftGenerator {
                 bodyWithAppState = StringTools.replace(bodyWithAppState, "{" + n + "}", '\\(' + placeholder + n + ')');
                 // Replace bare "name = " (assignment in closures) with __APPSTATE__name =
                 bodyWithAppState = StringTools.replace(bodyWithAppState, n + " = ", placeholder + n + " = ");
+                // Replace "if name" (ConditionalView boolean) with "if __APPSTATE__name"
+                bodyWithAppState = StringTools.replace(bodyWithAppState, "if " + n + " ", "if " + placeholder + n + " ");
+                bodyWithAppState = StringTools.replace(bodyWithAppState, "if " + n + "\n", "if " + placeholder + n + "\n");
             }
             // Now resolve all placeholders to "appState."
             bodyWithAppState = StringTools.replace(bodyWithAppState, placeholder, "appState.");
