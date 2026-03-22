@@ -1645,6 +1645,14 @@ class SwiftGenerator {
                                         var fnName = if (args.length > 2) extractString(args[2]) else "unknown";
                                         var argStr = if (args.length > 3) extractBridgeArgs(args[3]) else "";
                                         '${p0} = "${esc(loadingVal)}"; Task.detached { let r = HaxeBridgeC.${fnName}(${argStr}); await MainActor.run { ${p0} = r } }';
+                                    case "Animated":
+                                        // args[0] = inner StateAction, args[1] = curve string
+                                        var innerAction = if (args.length > 0) stateActionToSwift(args[0]) else null;
+                                        var curve = if (args.length > 1) extractString(args[1]) else "default";
+                                        if (innerAction != null)
+                                            'withAnimation(.${curve != null ? curve : "default"}) { ${innerAction} }';
+                                        else
+                                            null;
                                     default: null;
                                 }
                             default:
@@ -1674,7 +1682,7 @@ class SwiftGenerator {
                  "brightness" | "contrast" | "saturation" | "grayscale" |
                  "fullScreenCover" | "popover" | "contextMenu" | "swipeActions" | "refreshable" |
                  "listStyle" | "aspectRatio" | "accessibilityLabel" |
-                 "onSubmit" | "onLongPressGesture":
+                 "onSubmit" | "onLongPressGesture" | "transition":
                 true;
             default: false;
         }
@@ -1804,11 +1812,15 @@ class SwiftGenerator {
                 var pad2 = ind(indent + 2);
                 'toolbar {\n${pad}    ToolbarItem(placement: .${placement}) {\n${contentSwift}${pad2}}\n${pad}}';
             case "animation":
-                var value = if (args.length > 0) extractString(args[0]) else null;
+                var curve = if (args.length > 0) extractString(args[0]) else "default";
+                var value = if (args.length > 1) extractString(args[1]) else null;
                 if (value != null)
-                    'animation(.default, value: ${value})';
+                    'animation(.${curve != null ? curve : "default"}, value: ${value})';
                 else
-                    "animation(.default)";
+                    'animation(.${curve != null ? curve : "default"})';
+            case "transition":
+                var style = if (args.length > 0) extractString(args[0]) else "opacity";
+                'transition(.${style != null ? style : "opacity"})';
             case "overlay":
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
