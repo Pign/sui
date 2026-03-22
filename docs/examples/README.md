@@ -1,6 +1,6 @@
 # Examples
 
-sui includes 17 example apps demonstrating different features. Each is a complete, runnable project in the `examples/` directory.
+sui includes 18 example apps demonstrating different features. Each is a complete, runnable project in the `examples/` directory.
 
 ## All Examples
 
@@ -23,6 +23,7 @@ sui includes 17 example apps demonstrating different features. Each is a complet
 | visual-effects | blur, scaleEffect, rotationEffect, state-bound modifiers | Intermediate |
 | grid-gallery | LazyVGrid, ContentUnavailableView, ConditionalView, gestures | Intermediate |
 | image-filters | brightness, contrast, saturation, grayscale, sliders | Intermediate |
+| animations | Animated actions, .animation(), .transition(), spring/bounce | Intermediate |
 
 ## Running an Example
 

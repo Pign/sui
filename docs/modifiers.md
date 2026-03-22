@@ -189,4 +189,43 @@ new VStack([...])
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.animation(value)` | `value: String` | Animation curve (`"default"`, `"easeIn"`, `"spring"`) |
+| `.animation(curve, ?value)` | `curve: String`, `value: String` | Animate changes with a named curve |
+| `.transition(style)` | `style: String` | Enter/exit transition for conditional views |
+
+**Animation curves:** `"default"`, `"easeIn"`, `"easeOut"`, `"easeInOut"`, `"spring"`, `"linear"`, `"bouncy"`
+
+**Transition styles:** `"slide"`, `"opacity"`, `"scale"`, `"move"`, `"push"`
+
+```haxe
+// Animate when a state variable changes
+new Text("Hello")
+    .scaleEffect("scale")
+    .animation("spring", "scale")
+
+// Transition on conditional views
+new ConditionalView("showDetail",
+    detailView.transition("slide"),
+    placeholder.transition("opacity")
+)
+```
+
+### Animated State Mutations
+
+Wrap any `StateAction` in `StateAction.Animated` to animate the change:
+
+```haxe
+// Without animation — instant
+new Button("Toggle", null, StateAction.Toggle("expanded"))
+
+// With animation — smooth spring
+new Button("Toggle", null,
+    StateAction.Animated(StateAction.Toggle("expanded"), "spring"))
+```
+
+Works with any action:
+
+```haxe
+StateAction.Animated(StateAction.Increment("count", 1), "easeInOut")
+StateAction.Animated(StateAction.SetValue("scale", 1.5), "spring")
+StateAction.Animated(StateAction.CustomSwift("offset = offset == 0 ? 50 : 0"), "bouncy")
+```

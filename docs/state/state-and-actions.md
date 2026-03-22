@@ -86,7 +86,16 @@ StateAction.BridgeCall("result", "greet", "World")
 // Async with loading state
 StateAction.BridgeCallLoading("result", "Loading...", "fetchUrl", "https://example.com")
 // → result = "Loading..."; Task { result = HaxeBridgeC.fetchUrl("https://example.com") }
+
+// Animated — wraps any action in withAnimation
+StateAction.Animated(StateAction.Toggle("showDetail"), "spring")
+// → withAnimation(.spring) { showDetail.toggle() }
+
+StateAction.Animated(StateAction.Increment("count", 1), "easeInOut")
+// → withAnimation(.easeInOut) { count += 1 }
 ```
+
+**Animation curves:** `"default"`, `"easeIn"`, `"easeOut"`, `"easeInOut"`, `"spring"`, `"linear"`, `"bouncy"`
 
 ## Text.withState
 

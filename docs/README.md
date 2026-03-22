@@ -50,4 +50,4 @@ class HelloApp extends App {
 - **[State](state/README.md)** &mdash; State management, bindings, and observables.
 - **[Bridge](bridge.md)** &mdash; Transparent Haxe/C++ bridge (automatic closures + explicit exports).
 - **[Native Extensions](native-extensions.md)** &mdash; Custom Swift files and SPM packages.
-- **[Examples](examples/README.md)** &mdash; 17 example apps.
+- **[Examples](examples/README.md)** &mdash; 18 example apps.

@@ -152,3 +152,19 @@ new ConditionalView("currentScreen", "login",
 | `trueView` | `View` | View shown when condition is true (boolean) or matched (string) |
 | `falseView` | `View` | *(optional)* View shown otherwise |
 | `matchValue` | `String` | *(string mode only)* Value to compare against |
+
+### Animated transitions
+
+Add `.transition()` to child views for enter/exit animations, and use `StateAction.Animated` to animate the toggle:
+
+```haxe
+new Button("Toggle", null,
+    StateAction.Animated(StateAction.Toggle("showDetail"), "spring"))
+
+new ConditionalView("showDetail",
+    detailView.transition("slide"),
+    placeholder.transition("opacity")
+)
+```
+
+**Transition styles:** `"slide"`, `"opacity"`, `"scale"`, `"move"`, `"push"`
