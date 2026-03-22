@@ -88,12 +88,6 @@ class State<T> {
         onChange = callback;
     }
 
-    /** Remove this state from the registry. Call when no longer needed. **/
-    public function dispose():Void {
-        if (name != "")
-            _registry.remove(name);
-    }
-
     // ── Shared-memory query API (called from C bridge) ──────────────
 
     /** Get array length for a named state. Returns -1 if not found or not an array. **/
@@ -144,6 +138,7 @@ class State<T> {
 
     /** Get a string field from an object at an index in a named array state. **/
     public static function _getObjectField(stateName:String, index:Int, fieldName:String):String {
+        if (fieldName == null) return "";
         var arr = _getArrayDynamic(stateName);
         if (arr == null || index < 0 || index >= arr.length) return "";
         var obj:Dynamic = arr[index];
@@ -154,6 +149,7 @@ class State<T> {
 
     /** Get an int field from an object at an index in a named array state. **/
     public static function _getObjectIntField(stateName:String, index:Int, fieldName:String):Int {
+        if (fieldName == null) return 0;
         var arr = _getArrayDynamic(stateName);
         if (arr == null || index < 0 || index >= arr.length) return 0;
         var obj:Dynamic = arr[index];
@@ -164,6 +160,7 @@ class State<T> {
 
     /** Get a float field from an object at an index in a named array state. **/
     public static function _getObjectFloatField(stateName:String, index:Int, fieldName:String):Float {
+        if (fieldName == null) return 0.0;
         var arr = _getArrayDynamic(stateName);
         if (arr == null || index < 0 || index >= arr.length) return 0.0;
         var obj:Dynamic = arr[index];
@@ -174,6 +171,7 @@ class State<T> {
 
     /** Get a bool field from an object at an index in a named array state. **/
     public static function _getObjectBoolField(stateName:String, index:Int, fieldName:String):Bool {
+        if (fieldName == null) return false;
         var arr = _getArrayDynamic(stateName);
         if (arr == null || index < 0 || index >= arr.length) return false;
         var obj:Dynamic = arr[index];
