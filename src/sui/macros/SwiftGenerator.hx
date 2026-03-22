@@ -1108,6 +1108,31 @@ class SwiftGenerator {
                 buf.add('${pad}}\n');
                 return buf.toString();
 
+            case "Gauge":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var binding = if (args.length > 1) extractString(args[1]) else "value";
+                var rangeMin = if (args.length > 2) extractConstant(args[2]) else "0.0";
+                var rangeMax = if (args.length > 3) extractConstant(args[3]) else "1.0";
+                return '${pad}Gauge(value: ${binding}, in: ${rangeMin}...${rangeMax}) { Text("${esc(label != null ? label : "")}") }\n';
+
+            case "ProgressView":
+                var label = if (args.length > 0) extractString(args[0]) else null;
+                var binding = if (args.length > 1) extractString(args[1]) else null;
+                var total = if (args.length > 2) extractConstant(args[2]) else null;
+                if (binding != null && total != null)
+                    return '${pad}ProgressView("${esc(label != null ? label : "")}", value: ${binding}, total: ${total})\n';
+                else if (label != null)
+                    return '${pad}ProgressView("${esc(label)}")\n';
+                else
+                    return '${pad}ProgressView()\n';
+
+            case "Stepper":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var binding = if (args.length > 1) extractString(args[1]) else "value";
+                var rangeMin = if (args.length > 2) extractConstant(args[2]) else "0";
+                var rangeMax = if (args.length > 3) extractConstant(args[3]) else "100";
+                return '${pad}Stepper("${esc(label != null ? label : "")}", value: $$${binding}, in: ${rangeMin}...${rangeMax})\n';
+
             case "Link":
                 var label = if (args.length > 0) extractString(args[0]) else "";
                 var url = if (args.length > 1) extractString(args[1]) else "";

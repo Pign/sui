@@ -15,6 +15,7 @@ class FormApp extends App {
     @:state var notifications:Bool = true;
     @:state var darkMode:Bool = false;
     @:state var username:String = "";
+    @:state var password:String = "";
 
     public function new() {
         super();
