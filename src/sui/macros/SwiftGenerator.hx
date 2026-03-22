@@ -1071,6 +1071,48 @@ class SwiftGenerator {
                 buf.add('${pad}}\n');
                 return buf.toString();
 
+            case "DisclosureGroup":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                if (args.length > 1) {
+                    var uArg = unwrap(args[1]);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                buf.add('${pad}DisclosureGroup("${esc(label != null ? label : "")}") {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "GroupBox":
+                var label = if (args.length > 0) extractString(args[0]) else null;
+                var children:Array<haxe.macro.Type.TypedExpr> = [];
+                for (arg in args) {
+                    var uArg = unwrap(arg);
+                    switch (uArg.expr) {
+                        case TArrayDecl(el): children = el;
+                        default:
+                    }
+                }
+                var buf = new StringBuf();
+                if (label != null)
+                    buf.add('${pad}GroupBox("${esc(label)}") {\n');
+                else
+                    buf.add('${pad}GroupBox {\n');
+                for (child in children)
+                    buf.add(viewToSwift(child, indent + 1));
+                buf.add('${pad}}\n');
+                return buf.toString();
+
+            case "Link":
+                var label = if (args.length > 0) extractString(args[0]) else "";
+                var url = if (args.length > 1) extractString(args[1]) else "";
+                return '${pad}Link("${esc(label != null ? label : "")}", destination: URL(string: "${esc(url != null ? url : "")}")!)\n';
+
             case "Image":
                 if (args.length > 0) {
                     var n = extractString(args[0]);
@@ -1537,7 +1579,10 @@ class SwiftGenerator {
                  "sheet" | "alert" | "confirmationDialog" | "searchable" | "toolbar" | "animation" |
                  "onAppear" | "onDisappear" | "task" | "navigationDestination" |
                  "onTapGesture" | "tint" | "badge" | "tag" |
-                 "onAppearAction" | "taskAction" | "toolbarItem":
+                 "onAppearAction" | "taskAction" | "toolbarItem" |
+                 "blur" | "scaleEffect" | "rotationEffect" | "offset" |
+                 "fullScreenCover" | "contextMenu" | "swipeActions" | "refreshable" |
+                 "listStyle" | "aspectRatio" | "accessibilityLabel":
                 true;
             default: false;
         }
@@ -1690,6 +1735,59 @@ class SwiftGenerator {
             case "tag":
                 var s = if (args.length > 0) extractString(args[0]) else null;
                 s != null ? 'tag("${esc(s)}")' : 'tag("")';
+
+            // --- Visual effects ---
+            case "blur":
+                var r = if (args.length > 0) extractConstant(args[0]) else "3";
+                'blur(radius: ${r != null ? r : "3"})';
+            case "scaleEffect":
+                var s = if (args.length > 0) extractConstant(args[0]) else "1.0";
+                'scaleEffect(${s != null ? s : "1.0"})';
+            case "rotationEffect":
+                var d = if (args.length > 0) extractConstant(args[0]) else "0";
+                'rotationEffect(.degrees(${d != null ? d : "0"}))';
+            case "offset":
+                var x = if (args.length > 0) extractConstant(args[0]) else "0";
+                var y = if (args.length > 1) extractConstant(args[1]) else "0";
+                'offset(x: ${x != null ? x : "0"}, y: ${y != null ? y : "0"})';
+
+            // --- Presentation ---
+            case "fullScreenCover":
+                var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
+                var pad2 = ind(indent + 1);
+                var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 2) else '${pad2}    Text("Content")\n';
+                'fullScreenCover(isPresented: $$${binding}) {\n${contentSwift}${pad2}}';
+            case "contextMenu":
+                var pad2 = ind(indent + 1);
+                var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
+                'contextMenu {\n${contentSwift}${pad2}}';
+
+            // --- List ---
+            case "swipeActions":
+                var pad2 = ind(indent + 1);
+                var contentSwift = if (args.length > 0) viewToSwift(args[0], indent + 2) else "";
+                'swipeActions {\n${contentSwift}${pad2}}';
+            case "refreshable":
+                needsRuntimeBridge = true;
+                'refreshable { Task.detached { HaxeBridgeC.invokeAction(__LIFECYCLE_ACTION__) } }';
+            case "listStyle":
+                var s = if (args.length > 0) extractString(args[0]) else "automatic";
+                'listStyle(.${s != null ? s : "automatic"})';
+
+            // --- Layout ---
+            case "aspectRatio":
+                var r = if (args.length > 0) extractConstant(args[0]) else null;
+                var mode = if (args.length > 1) extractString(args[1]) else "fit";
+                if (r != null)
+                    'aspectRatio($r, contentMode: .${mode != null ? mode : "fit"})';
+                else
+                    'aspectRatio(contentMode: .${mode != null ? mode : "fit"})';
+
+            // --- Accessibility ---
+            case "accessibilityLabel":
+                var s = if (args.length > 0) extractString(args[0]) else "";
+                'accessibilityLabel("${esc(s != null ? s : "")}")';
+
             default:
                 // Generic: try to pass through args
                 if (args.length == 0) '${name}()';
