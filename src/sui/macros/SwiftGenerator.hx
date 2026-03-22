@@ -1845,17 +1845,17 @@ class SwiftGenerator {
 
             // --- Image effects ---
             case "brightness":
-                var v = if (args.length > 0) extractConstant(args[0]) else "0";
-                'brightness(${v != null ? v : "0"})';
+                var v = resolveModifierValue(args, 0, "0");
+                'brightness($v)';
             case "contrast":
-                var v = if (args.length > 0) extractConstant(args[0]) else "1";
-                'contrast(${v != null ? v : "1"})';
+                var v = resolveModifierValue(args, 0, "1");
+                'contrast($v)';
             case "saturation":
-                var v = if (args.length > 0) extractConstant(args[0]) else "1";
-                'saturation(${v != null ? v : "1"})';
+                var v = resolveModifierValue(args, 0, "1");
+                'saturation($v)';
             case "grayscale":
-                var v = if (args.length > 0) extractConstant(args[0]) else "0";
-                'grayscale(${v != null ? v : "0"})';
+                var v = resolveModifierValue(args, 0, "0");
+                'grayscale($v)';
 
             // --- Presentation ---
             case "popover":

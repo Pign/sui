@@ -239,26 +239,26 @@ class View {
         return this;
     }
 
-    /** Adjust brightness. **/
-    public function brightness(amount:Float):View {
+    /** Adjust brightness. Pass Float for static, String state name for dynamic. **/
+    public function brightness(amount:Dynamic):View {
         modifierChain.push(ViewModifier.Brightness(amount));
         return this;
     }
 
-    /** Adjust contrast. **/
-    public function contrast(amount:Float):View {
+    /** Adjust contrast. Pass Float for static, String state name for dynamic. **/
+    public function contrast(amount:Dynamic):View {
         modifierChain.push(ViewModifier.Contrast(amount));
         return this;
     }
 
-    /** Adjust color saturation. **/
-    public function saturation(amount:Float):View {
+    /** Adjust color saturation. Pass Float for static, String state name for dynamic. **/
+    public function saturation(amount:Dynamic):View {
         modifierChain.push(ViewModifier.Saturation(amount));
         return this;
     }
 
-    /** Apply grayscale effect. **/
-    public function grayscale(amount:Float):View {
+    /** Apply grayscale effect. Pass Float for static, String state name for dynamic. **/
+    public function grayscale(amount:Dynamic):View {
         modifierChain.push(ViewModifier.Grayscale(amount));
         return this;
     }
