@@ -46,10 +46,10 @@ class FiltersApp extends App {
                 .foregroundColor(ColorValue.White)
                 .cornerRadius(12)
             ])
-            .brightness("brightnessVal")
-            .contrast("contrastVal")
-            .saturation("saturationVal")
-            .grayscale("grayscaleVal")
+            .brightness(brightnessVal)
+            .contrast(contrastVal)
+            .saturation(saturationVal)
+            .grayscale(grayscaleVal)
             .padding(),
 
             // Controls

@@ -1986,10 +1986,20 @@ class SwiftGenerator {
                     case TInt(v): return Std.string(v);
                     case TFloat(v): return v;
                     case TBool(b): return b ? "true" : "false";
-                    case TString(s): return s; // state variable name — emit bare, no quotes
+                    case TString(s): return s; // backward compat: string as state name
+                    default:
+                }
+            case TField(_, fa):
+                // State<T> field reference — extract field name
+                switch (fa) {
+                    case FInstance(_, _, fieldRef): return fieldRef.get().name;
+                    case FStatic(_, fieldRef): return fieldRef.get().name;
                     default:
                 }
             default:
+                // Check for TLocal referencing a field (common with @:state)
+                var fieldName = extractThisField(e);
+                if (fieldName != null) return fieldName;
         }
         return defaultVal;
     }
