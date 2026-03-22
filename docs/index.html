@@ -22,8 +22,30 @@
     .markdown-section pre>code { color: inherit; }
     .app-nav { font-family: 'Inter', sans-serif; }
     .cover-main .anchor span { color: #EA8220; }
-    section.cover { background: #fff !important; }
-    section.cover .cover-main { color: #333; }
+    section.cover {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+    }
+    section.cover .cover-main { color: #e8e8e8; }
+    section.cover h1 { color: #fff; font-size: 3rem; }
+    section.cover h1 span { color: #EA8220; }
+    section.cover blockquote p { color: #F5A623; font-size: 1.2rem; }
+    section.cover ul li { color: #ccc; }
+    section.cover ul li code { background: rgba(234, 130, 32, 0.15); color: #F5A623; }
+    section.cover .cover-main > p:last-of-type a {
+      border-radius: 2rem;
+      padding: 0.6em 2em;
+      font-weight: 600;
+    }
+    section.cover .cover-main > p:last-of-type a:last-child {
+      background: #EA8220 !important;
+      color: #fff !important;
+      border: none;
+    }
+    section.cover .cover-main > p:last-of-type a:first-child {
+      border: 2px solid rgba(255,255,255,0.3) !important;
+      color: #fff !important;
+      background: transparent !important;
+    }
   </style>
 </head>
 <body>
