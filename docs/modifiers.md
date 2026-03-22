@@ -79,22 +79,27 @@ new Text("Custom color")
 
 Pass a `Float` for a static value, or a `String` state variable name for dynamic binding.
 
+Each parameter accepts a `Float` (static) or a `State<Float>` (reactive). Type-checked at compile time.
+
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.blur(radius)` | `radius: Dynamic` | Gaussian blur |
-| `.scaleEffect(scale)` | `scale: Dynamic` | Scale transform |
-| `.rotationEffect(degrees)` | `degrees: Dynamic` | Rotation in degrees |
-| `.brightness(amount)` | `amount: Dynamic` | Adjust brightness (-1 to 1) |
-| `.contrast(amount)` | `amount: Dynamic` | Adjust contrast |
-| `.saturation(amount)` | `amount: Dynamic` | Adjust saturation |
-| `.grayscale(amount)` | `amount: Dynamic` | Grayscale (0 to 1) |
+| `.blur(radius)` | `radius: StateOr<Float>` | Gaussian blur |
+| `.scaleEffect(scale)` | `scale: StateOr<Float>` | Scale transform |
+| `.rotationEffect(degrees)` | `degrees: StateOr<Float>` | Rotation in degrees |
+| `.offset(x, y)` | `x, y: StateOr<Float>` | Offset position |
+| `.brightness(amount)` | `amount: StateOr<Float>` | Adjust brightness (-1 to 1) |
+| `.contrast(amount)` | `amount: StateOr<Float>` | Adjust contrast |
+| `.saturation(amount)` | `amount: StateOr<Float>` | Adjust saturation |
+| `.grayscale(amount)` | `amount: StateOr<Float>` | Grayscale (0 to 1) |
 
 ```haxe
+@:state var blurAmount:Float = 0.0;
+
 // Static value
 new Image("photo").blur(5.0)
 
-// State-bound — changes when slider moves
-new Image("photo").blur("blurAmount")
+// State-bound — animates when blurAmount changes
+new Image("photo").blur(blurAmount)
 ```
 
 ## Navigation
@@ -199,7 +204,7 @@ new VStack([...])
 ```haxe
 // Animate when a state variable changes
 new Text("Hello")
-    .scaleEffect("scale")
+    .scaleEffect(scale)
     .animation("spring", "scale")
 
 // Transition on conditional views

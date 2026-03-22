@@ -54,8 +54,10 @@ StateAction.Animated(StateAction.CustomSwift("scale = 1; rotation = 0"), "spring
 The `.animation()` modifier tells SwiftUI to animate a view when a state variable changes:
 
 ```haxe
+@:state var scale:Float = 1.0;
+
 new Text("Hello")
-    .scaleEffect("scale")
+    .scaleEffect(scale)
     .animation("spring", "scale")
 ```
 
@@ -63,22 +65,26 @@ When `scale` changes, the scale effect animates with a spring curve. Without the
 
 ```haxe
 new Text("Hello")
-    .opacity("alpha")
+    .opacity(alpha)
     .animation("easeInOut")
 ```
 
 ### Combining with State-Bound Modifiers
 
-Visual effect modifiers accept state variable names (strings) for dynamic values. Pair them with `.animation()` for smooth transitions:
+Visual effect modifiers accept `State<Float>` references for dynamic values. These are type-checked at compile time. Pair them with `.animation()` for smooth transitions:
 
 ```haxe
+@:state var cardScale:Float = 1.0;
+@:state var cardRotation:Float = 0.0;
+@:state var cardBlur:Float = 0.0;
+
 new GroupBox("Card", [
     new Text("Animated!")
         .font(FontStyle.Title)
 ])
-.scaleEffect("cardScale")
-.rotationEffect("cardRotation")
-.blur("cardBlur")
+.scaleEffect(cardScale)
+.rotationEffect(cardRotation)
+.blur(cardBlur)
 .animation("spring", "cardScale")
 .animation("easeInOut", "cardRotation")
 .animation("easeOut", "cardBlur")
@@ -159,8 +165,8 @@ class AnimApp extends App {
             // Card with animated transforms
             new Text("Hello!")
                 .font(FontStyle.Title)
-                .scaleEffect("scale")
-                .rotationEffect("rotation")
+                .scaleEffect(scale)
+                .rotationEffect(rotation)
                 .animation("spring", "scale")
                 .animation("spring", "rotation"),
 
