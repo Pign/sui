@@ -32,9 +32,9 @@ class AnimApp extends App {
             .scaleEffect(scale)
             .rotationEffect(rotation)
             .offset(offset, 0)
-            .animation("spring", "scale")
-            .animation("spring", "rotation")
-            .animation("easeInOut", "offset")
+            .animation("spring", scale)
+            .animation("spring", rotation)
+            .animation("easeInOut", offset)
             .padding(),
 
             new HStack(null, 15, [
@@ -87,11 +87,11 @@ class AnimApp extends App {
 ```haxe
 .scaleEffect(scale)
 .rotationEffect(rotation)
-.animation("spring", "scale")
-.animation("spring", "rotation")
+.animation("spring", scale)
+.animation("spring", rotation)
 ```
 
-Pass a `State<Float>` reference to visual effect modifiers for dynamic binding. Type-checked at compile time. The `.animation()` modifier tells SwiftUI which curve to use when that variable changes.
+Pass a `State<Float>` reference to visual effect modifiers for dynamic binding. Type-checked at compile time. The `.animation()` modifier tells SwiftUI which curve to use when that `State<Float>` reference changes.
 
 ### Animated Mutations
 
@@ -124,7 +124,7 @@ StateAction.Toggle("showDetail")
 
 1. **State changes** &mdash; `Animated` wraps the mutation in `withAnimation`
 2. **View bindings** &mdash; `.scaleEffect(scale)` reads the `State<Float>` field (type-checked)
-3. **Animation curve** &mdash; `.animation("spring", "scale")` specifies HOW to animate
+3. **Animation curve** &mdash; `.animation("spring", scale)` specifies HOW to animate
 4. **Transitions** &mdash; `.transition("slide")` specifies enter/exit behavior
 
 All three can be combined on the same view for complex animated interactions.

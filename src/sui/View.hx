@@ -132,7 +132,7 @@ class View {
     }
 
     /** Animate changes. Curve: "default", "easeIn", "easeOut", "easeInOut", "spring", "linear", "bouncy". **/
-    public function animation(curve:String, ?value:String):View {
+    public function animation(curve:String, ?value:sui.state.StateOr<Float>):View {
         modifierChain.push(ViewModifier.Animation(curve, value));
         return this;
     }

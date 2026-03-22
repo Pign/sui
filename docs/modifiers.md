@@ -77,7 +77,7 @@ new Text("Custom color")
 
 ## Visual Effects
 
-Pass a `Float` for a static value, or a `String` state variable name for dynamic binding.
+Pass a `Float` for a static value, or a `State<Float>` reference for dynamic binding.
 
 Each parameter accepts a `Float` (static) or a `State<Float>` (reactive). Type-checked at compile time.
 
@@ -194,7 +194,7 @@ new VStack([...])
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.animation(curve, ?value)` | `curve: String`, `value: String` | Animate changes with a named curve |
+| `.animation(curve, ?value)` | `curve: String`, `value: StateOr<Float>` | Animate changes with a named curve |
 | `.transition(style)` | `style: String` | Enter/exit transition for conditional views |
 
 **Animation curves:** `"default"`, `"easeIn"`, `"easeOut"`, `"easeInOut"`, `"spring"`, `"linear"`, `"bouncy"`
@@ -202,10 +202,10 @@ new VStack([...])
 **Transition styles:** `"slide"`, `"opacity"`, `"scale"`, `"move"`, `"push"`
 
 ```haxe
-// Animate when a state variable changes
+// Animate when a State<Float> reference changes
 new Text("Hello")
     .scaleEffect(scale)
-    .animation("spring", "scale")
+    .animation("spring", scale)
 
 // Transition on conditional views
 new ConditionalView("showDetail",

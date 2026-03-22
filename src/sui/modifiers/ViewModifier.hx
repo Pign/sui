@@ -51,7 +51,7 @@ enum ViewModifier {
     Overlay(content:sui.View);
 
     // Animation
-    Animation(curve:String, value:Null<String>);
+    Animation(curve:String, value:Dynamic);
     Transition(style:String);
 
     // Lifecycle
