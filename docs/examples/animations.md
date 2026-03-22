@@ -1,6 +1,6 @@
 # Animations
 
-Demonstrates all three animation primitives: `Animated` actions, `.animation()` modifier, and `.transition()`.
+Demonstrates all three animation primitives: fluent `.animated()` chaining, `.animation()` modifier with `AnimationCurve`, and `.transition()`.
 
 ## Full Source
 
@@ -32,32 +32,27 @@ class AnimApp extends App {
             .scaleEffect(scale)
             .rotationEffect(rotation)
             .offset(offset, 0)
-            .animation("spring", scale)
-            .animation("spring", rotation)
-            .animation("easeInOut", offset)
+            .animation(AnimationCurve.Spring, scale)
+            .animation(AnimationCurve.Spring, rotation)
+            .animation(AnimationCurve.EaseInOut, offset)
             .padding(),
 
             new HStack(null, 15, [
                 new Button("Bounce", null,
-                    StateAction.Animated(
-                        StateAction.CustomSwift("scale = scale == 1.0 ? 1.3 : 1.0"),
-                        "spring")),
+                    StateAction.CustomSwift("scale = scale == 1.0 ? 1.3 : 1.0")
+                        .animated(AnimationCurve.Spring)),
                 new Button("Spin", null,
-                    StateAction.Animated(
-                        StateAction.Increment("rotation", 90),
-                        "easeInOut")),
+                    rotation.inc(90).animated(AnimationCurve.EaseInOut)),
                 new Button("Slide", null,
-                    StateAction.Animated(
-                        StateAction.CustomSwift("offset = offset == 0 ? 50 : 0"),
-                        "easeInOut")),
+                    StateAction.CustomSwift("offset = offset == 0 ? 50 : 0")
+                        .animated(AnimationCurve.EaseInOut)),
                 new Button("Reset", null,
-                    StateAction.Animated(
-                        StateAction.CustomSwift("scale = 1; rotation = 0; offset = 0"),
-                        "spring"))
+                    StateAction.CustomSwift("scale = 1; rotation = 0; offset = 0")
+                        .animated(AnimationCurve.Spring))
             ]),
 
             new Button("Toggle Detail", null,
-                StateAction.Animated(StateAction.Toggle("showDetail"), "spring")),
+                showDetail.tog().animated(AnimationCurve.Spring)),
 
             new ConditionalView("showDetail",
                 new VStack([
@@ -87,19 +82,19 @@ class AnimApp extends App {
 ```haxe
 .scaleEffect(scale)
 .rotationEffect(rotation)
-.animation("spring", scale)
-.animation("spring", rotation)
+.animation(AnimationCurve.Spring, scale)
+.animation(AnimationCurve.Spring, rotation)
 ```
 
-Pass a `State<Float>` reference to visual effect modifiers for dynamic binding. Type-checked at compile time. The `.animation()` modifier tells SwiftUI which curve to use when that `State<Float>` reference changes.
+Pass a `State<Float>` reference to visual effect modifiers for dynamic binding. Type-checked at compile time. The `.animation()` modifier takes an `AnimationCurve` enum value that tells SwiftUI which curve to use when that `State<Float>` reference changes.
 
 ### Animated Mutations
 
 ```haxe
-StateAction.Animated(StateAction.Increment("rotation", 90), "easeInOut")
+rotation.inc(90).animated(AnimationCurve.EaseInOut)
 ```
 
-`Animated` wraps any `StateAction` in `withAnimation(.curve) { }`. Without it, the state change is instant. With it, SwiftUI interpolates the visual property smoothly.
+The fluent `.animated()` method wraps any `StateAction` in `withAnimation(.curve) { }`. Without it, the state change is instant. With it, SwiftUI interpolates the visual property smoothly.
 
 ### Transitions
 
@@ -114,17 +109,17 @@ new ConditionalView("showDetail",
 
 ```haxe
 // Animates transition:
-StateAction.Animated(StateAction.Toggle("showDetail"), "spring")
+showDetail.tog().animated(AnimationCurve.Spring)
 
 // No transition animation:
-StateAction.Toggle("showDetail")
+showDetail.tog()
 ```
 
 ### How They Work Together
 
-1. **State changes** &mdash; `Animated` wraps the mutation in `withAnimation`
+1. **State changes** &mdash; `.animated(AnimationCurve.Spring)` wraps the mutation in `withAnimation`
 2. **View bindings** &mdash; `.scaleEffect(scale)` reads the `State<Float>` field (type-checked)
-3. **Animation curve** &mdash; `.animation("spring", scale)` specifies HOW to animate
+3. **Animation curve** &mdash; `.animation(AnimationCurve.Spring, scale)` specifies HOW to animate
 4. **Transitions** &mdash; `.transition("slide")` specifies enter/exit behavior
 
 All three can be combined on the same view for complex animated interactions.

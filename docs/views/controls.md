@@ -5,14 +5,14 @@
 Triggers an action when tapped.
 
 ```haxe
-// With a StateAction
-new Button("Increment", null, StateAction.Increment("count", 1))
+// With a fluent StateAction
+new Button("Increment", null, count.inc(1))
 
 // With a Haxe closure (bridged automatically, no annotation needed)
 new Button("Say Hello", () -> myState.value = "Hello!")
 
-// With both (StateAction for Swift, closure for Haxe-side effects)
-new Button("+", () -> count.value = count.value + 1, StateAction.Increment("count", 1))
+// With both (fluent StateAction for Swift, closure for Haxe-side effects)
+new Button("+", () -> count.value = count.value + 1, count.inc(1))
 ```
 
 **Parameters:**
@@ -34,7 +34,7 @@ Button.withView(
         new Text("Add Item")
     ]),
     null,
-    StateAction.Append("items", someValue)
+    items.appendAction(someValue)
 )
 ```
 

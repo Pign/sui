@@ -51,8 +51,8 @@ new HStack([
 
 ```haxe
 new HStack(null, 20, [
-    new Button("-", null, StateAction.Decrement("count", 1)),
-    new Button("+", null, StateAction.Increment("count", 1))
+    new Button("-", null, count.dec(1)),
+    new Button("+", null, count.inc(1))
 ])
 ```
 
@@ -155,11 +155,11 @@ new ConditionalView("currentScreen", "login",
 
 ### Animated transitions
 
-Add `.transition()` to child views for enter/exit animations, and use `StateAction.Animated` to animate the toggle:
+Add `.transition()` to child views for enter/exit animations, and chain `.animated()` with an `AnimationCurve` to animate the toggle:
 
 ```haxe
 new Button("Toggle", null,
-    StateAction.Animated(StateAction.Toggle("showDetail"), "spring"))
+    showDetail.tog().animated(AnimationCurve.Spring))
 
 new ConditionalView("showDetail",
     detailView.transition("slide"),

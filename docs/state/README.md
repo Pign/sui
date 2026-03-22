@@ -7,7 +7,7 @@ sui provides a reactive state system that maps to SwiftUI's state management.
 | Concept | Haxe | SwiftUI | Purpose |
 |---------|------|---------|---------|
 | `@:state` | `@:state var count:Int = 0` | `@State var count = 0` | View-local mutable state |
-| `StateAction` | `StateAction.Increment("count", 1)` | `count += 1` | Declarative state mutations |
+| `StateAction` | `count.inc(1)` | `count += 1` | Declarative state mutations (fluent API) |
 | `Binding` | `Binding.fromState(state)` | `@Binding var value` | Two-way reference to parent state |
 | `Observable` | `extends Observable` | `@Observable class` | Shared data models |
 | `Text.withState` | `Text.withState("{count}")` | `Text("\(count)")` | Display state values |
@@ -16,7 +16,7 @@ sui provides a reactive state system that maps to SwiftUI's state management.
 
 1. Declare `@:state` fields in your App class
 2. The framework generates matching `@State var` properties in Swift
-3. Mutations happen through `StateAction` (in Swift) or `state.value = x` (in Haxe via bridge)
+3. Mutations happen through the fluent `StateAction` API (in Swift) or `state.value = x` (in Haxe via bridge)
 4. SwiftUI automatically re-renders when state changes
 
 ## Quick Example
@@ -35,7 +35,7 @@ class CounterApp extends App {
         return new VStack([
             Text.withState("Count: {count}")
                 .font(FontStyle.Title),
-            new Button("+1", null, StateAction.Increment("count", 1)),
+            new Button("+1", null, count.inc(1)),
             new Button("Reset", () -> count.value = 0)
         ]);
     }

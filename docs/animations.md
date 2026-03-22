@@ -4,15 +4,15 @@ sui provides three animation primitives that map to SwiftUI's animation system.
 
 ## Animated State Mutations
 
-Wrap any `StateAction` in `StateAction.Animated` to animate the change:
+Chain `.animated()` on any fluent `StateAction` to animate the change. Use the `AnimationCurve` enum to specify the curve:
 
 ```haxe
 // Instant (no animation)
-new Button("Toggle", null, StateAction.Toggle("expanded"))
+new Button("Toggle", null, expanded.tog())
 
 // Animated with spring curve
 new Button("Toggle", null,
-    StateAction.Animated(StateAction.Toggle("expanded"), "spring"))
+    expanded.tog().animated(AnimationCurve.Spring))
 ```
 
 This generates:
@@ -24,41 +24,43 @@ Button("Toggle") { expanded.toggle() }
 Button("Toggle") { withAnimation(.spring) { expanded.toggle() } }
 ```
 
-Any `StateAction` can be wrapped:
+Any fluent `StateAction` can be animated:
 
 ```haxe
 // Scale with bounce
-StateAction.Animated(StateAction.SetValue("scale", 1.5), "bouncy")
+scale.setTo(1.5).animated(AnimationCurve.Bouncy)
 
 // Increment with ease
-StateAction.Animated(StateAction.Increment("count", 1), "easeInOut")
+count.inc(1).animated(AnimationCurve.EaseInOut)
 
 // Multiple mutations
-StateAction.Animated(StateAction.CustomSwift("scale = 1; rotation = 0"), "spring")
+StateAction.CustomSwift("scale = 1; rotation = 0").animated(AnimationCurve.Spring)
 ```
 
 ### Animation Curves
 
+Use the `AnimationCurve` enum for type-safe curve selection:
+
 | Curve | Description |
 |-------|-------------|
-| `"default"` | System default |
-| `"easeIn"` | Starts slow, speeds up |
-| `"easeOut"` | Starts fast, slows down |
-| `"easeInOut"` | Slow at both ends |
-| `"spring"` | Spring physics with overshoot |
-| `"linear"` | Constant speed |
-| `"bouncy"` | Playful bounce |
+| `AnimationCurve.Default` | System default |
+| `AnimationCurve.EaseIn` | Starts slow, speeds up |
+| `AnimationCurve.EaseOut` | Starts fast, slows down |
+| `AnimationCurve.EaseInOut` | Slow at both ends |
+| `AnimationCurve.Spring` | Spring physics with overshoot |
+| `AnimationCurve.Linear` | Constant speed |
+| `AnimationCurve.Bouncy` | Playful bounce |
 
 ## Animation Modifier
 
-The `.animation()` modifier tells SwiftUI to animate a view when a `State<Float>` reference changes:
+The `.animation()` modifier tells SwiftUI to animate a view when a `State<Float>` reference changes. Use the `AnimationCurve` enum for the curve:
 
 ```haxe
 @:state var scale:Float = 1.0;
 
 new Text("Hello")
     .scaleEffect(scale)
-    .animation("spring", scale)
+    .animation(AnimationCurve.Spring, scale)
 ```
 
 When `scale` changes, the scale effect animates with a spring curve. Without the second parameter, all state changes trigger animation:
@@ -66,12 +68,12 @@ When `scale` changes, the scale effect animates with a spring curve. Without the
 ```haxe
 new Text("Hello")
     .opacity(alpha)
-    .animation("easeInOut")
+    .animation(AnimationCurve.EaseInOut)
 ```
 
 ### Combining with State-Bound Modifiers
 
-Visual effect modifiers accept `State<Float>` references for dynamic values. These are type-checked at compile time. Pair them with `.animation()` for smooth transitions:
+Visual effect modifiers accept `State<Float>` references for dynamic values. These are type-checked at compile time. Pair them with `.animation()` and the `AnimationCurve` enum for smooth transitions:
 
 ```haxe
 @:state var cardScale:Float = 1.0;
@@ -85,19 +87,17 @@ new GroupBox("Card", [
 .scaleEffect(cardScale)
 .rotationEffect(cardRotation)
 .blur(cardBlur)
-.animation("spring", cardScale)
-.animation("easeInOut", cardRotation)
-.animation("easeOut", cardBlur)
+.animation(AnimationCurve.Spring, cardScale)
+.animation(AnimationCurve.EaseInOut, cardRotation)
+.animation(AnimationCurve.EaseOut, cardBlur)
 ```
 
-Then mutate the state with `Animated` to trigger:
+Then mutate the state with `.animated()` to trigger:
 
 ```haxe
 new Button("Bounce", null,
-    StateAction.Animated(
-        StateAction.CustomSwift("cardScale = cardScale == 1.0 ? 1.3 : 1.0"),
-        "spring"
-    ))
+    StateAction.CustomSwift("cardScale = cardScale == 1.0 ? 1.3 : 1.0")
+        .animated(AnimationCurve.Spring))
 ```
 
 ## Transitions
@@ -106,7 +106,7 @@ The `.transition()` modifier defines how a view enters and exits when used insid
 
 ```haxe
 new Button("Show Detail", null,
-    StateAction.Animated(StateAction.Toggle("showDetail"), "spring"))
+    showDetail.tog().animated(AnimationCurve.Spring))
 
 new ConditionalView("showDetail",
     // Slides in from the edge
@@ -136,7 +136,7 @@ new ConditionalView("showDetail",
 
 ```mermaid
 flowchart TD
-    A["Button tap"] --> B["StateAction.Animated"]
+    A["Button tap"] --> B[".animated(AnimationCurve.Spring)"]
     B --> C["withAnimation(.spring)"]
     C --> D["State mutation"]
     D --> E["SwiftUI detects change"]
@@ -148,14 +148,14 @@ flowchart TD
 
 ### Important
 
-Transitions only animate when the state change is itself animated. Use `StateAction.Animated` on the toggle:
+Transitions only animate when the state change is itself animated. Chain `.animated()` on the toggle:
 
 ```haxe
 // This animates the transition:
-StateAction.Animated(StateAction.Toggle("visible"), "spring")
+visible.tog().animated(AnimationCurve.Spring)
 
 // This does NOT — the view appears/disappears instantly:
-StateAction.Toggle("visible")
+visible.tog()
 ```
 
 ## Full Example
@@ -181,24 +181,21 @@ class AnimApp extends App {
                 .font(FontStyle.Title)
                 .scaleEffect(scale)
                 .rotationEffect(rotation)
-                .animation("spring", scale)
-                .animation("spring", rotation),
+                .animation(AnimationCurve.Spring, scale)
+                .animation(AnimationCurve.Spring, rotation),
 
             // Animated buttons
             new HStack(null, 15, [
                 new Button("Bounce", null,
-                    StateAction.Animated(
-                        StateAction.CustomSwift("scale = scale == 1.0 ? 1.3 : 1.0"),
-                        "spring")),
+                    StateAction.CustomSwift("scale = scale == 1.0 ? 1.3 : 1.0")
+                        .animated(AnimationCurve.Spring)),
                 new Button("Spin", null,
-                    StateAction.Animated(
-                        StateAction.Increment("rotation", 90),
-                        "easeInOut"))
+                    rotation.inc(90).animated(AnimationCurve.EaseInOut))
             ]),
 
             // Toggle with animated transition
             new Button("Toggle Detail", null,
-                StateAction.Animated(StateAction.Toggle("showDetail"), "spring")),
+                showDetail.tog().animated(AnimationCurve.Spring)),
 
             new ConditionalView("showDetail",
                 new Text("Detail!")
