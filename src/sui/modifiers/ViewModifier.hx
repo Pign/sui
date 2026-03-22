@@ -74,11 +74,11 @@ enum ViewModifier {
     RotationEffect(degrees:Dynamic);
     Offset(x:Dynamic, y:Dynamic);
 
-    // Image effects
-    Brightness(amount:Float);
-    Contrast(amount:Float);
-    Saturation(amount:Float);
-    Grayscale(amount:Float);
+    // Image effects (accept Float for static or String for state-bound)
+    Brightness(amount:Dynamic);
+    Contrast(amount:Dynamic);
+    Saturation(amount:Dynamic);
+    Grayscale(amount:Dynamic);
 
     // Presentation
     FullScreenCover(isPresentedBinding:String, content:sui.View);
