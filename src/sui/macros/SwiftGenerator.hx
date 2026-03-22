@@ -1813,7 +1813,7 @@ class SwiftGenerator {
                 'toolbar {\n${pad}    ToolbarItem(placement: .${placement}) {\n${contentSwift}${pad2}}\n${pad}}';
             case "animation":
                 var curve = if (args.length > 0) extractString(args[0]) else "default";
-                var value = if (args.length > 1) extractString(args[1]) else null;
+                var value = if (args.length > 1) resolveModifierValue(args, 1, null) else null;
                 if (value != null)
                     'animation(.${curve != null ? curve : "default"}, value: ${value})';
                 else

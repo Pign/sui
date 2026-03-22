@@ -37,9 +37,9 @@ class AnimApp extends App {
             .scaleEffect(scale)
             .rotationEffect(rotation)
             .offset(offset, 0)
-            .animation("spring", "scale")
-            .animation("spring", "rotation")
-            .animation("easeInOut", "offset")
+            .animation("spring", scale)
+            .animation("spring", rotation)
+            .animation("easeInOut", offset)
             .padding(),
 
             // Animated state mutations

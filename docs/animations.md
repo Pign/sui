@@ -51,14 +51,14 @@ StateAction.Animated(StateAction.CustomSwift("scale = 1; rotation = 0"), "spring
 
 ## Animation Modifier
 
-The `.animation()` modifier tells SwiftUI to animate a view when a state variable changes:
+The `.animation()` modifier tells SwiftUI to animate a view when a `State<Float>` reference changes:
 
 ```haxe
 @:state var scale:Float = 1.0;
 
 new Text("Hello")
     .scaleEffect(scale)
-    .animation("spring", "scale")
+    .animation("spring", scale)
 ```
 
 When `scale` changes, the scale effect animates with a spring curve. Without the second parameter, all state changes trigger animation:
@@ -85,9 +85,9 @@ new GroupBox("Card", [
 .scaleEffect(cardScale)
 .rotationEffect(cardRotation)
 .blur(cardBlur)
-.animation("spring", "cardScale")
-.animation("easeInOut", "cardRotation")
-.animation("easeOut", "cardBlur")
+.animation("spring", cardScale)
+.animation("easeInOut", cardRotation)
+.animation("easeOut", cardBlur)
 ```
 
 Then mutate the state with `Animated` to trigger:
@@ -181,8 +181,8 @@ class AnimApp extends App {
                 .font(FontStyle.Title)
                 .scaleEffect(scale)
                 .rotationEffect(rotation)
-                .animation("spring", "scale")
-                .animation("spring", "rotation"),
+                .animation("spring", scale)
+                .animation("spring", rotation),
 
             // Animated buttons
             new HStack(null, 15, [
