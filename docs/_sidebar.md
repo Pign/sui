@@ -14,6 +14,7 @@
   - [Binding](state/binding.md)
   - [Observable](state/observable.md)
 - [Components](components.md)
+- [Animations](animations.md)
 - [Bridge](bridge.md)
 - [Native Extensions](native-extensions.md)
 - [CLI Reference](cli.md)
@@ -26,3 +27,4 @@
   - [Todo App](examples/todo-app.md)
   - [Bridge Demo](examples/bridge-demo.md)
   - [Async Fetch](examples/async-fetch.md)
+  - [Animations](examples/animations.md)
