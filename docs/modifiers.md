@@ -208,7 +208,7 @@ new Text("Hello")
     .animation(AnimationCurve.Spring, scale)
 
 // Transition on conditional views
-new ConditionalView("showDetail",
+new ConditionalView(showDetail,
     detailView.transition("slide"),
     placeholder.transition("opacity")
 )
