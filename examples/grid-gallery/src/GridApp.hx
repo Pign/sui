@@ -29,7 +29,7 @@ class GridApp extends App {
                     new Button("Toggle Empty", null, StateAction.Toggle("showEmpty"))
                 ]).padding(),
 
-                new ConditionalView("showEmpty",
+                new ConditionalView(showEmpty,
                     // Empty state
                     new ContentUnavailableView("No Photos", "photo.on.rectangle.angled", "Import photos to see them here."),
 

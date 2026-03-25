@@ -59,7 +59,7 @@ class AnimApp extends App {
             new Button("Toggle Detail", null,
                 showDetail.tog().animated(AnimationCurve.Spring)),
 
-            new ConditionalView("showDetail",
+            new ConditionalView(showDetail,
                 new VStack([
                     new Text("Detail View")
                         .font(FontStyle.Headline),

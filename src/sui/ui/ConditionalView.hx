@@ -6,9 +6,9 @@ import sui.View;
     Conditionally renders one of two views based on a boolean state variable.
     Maps to SwiftUI's `if/else` in a `@ViewBuilder`.
 
-    Boolean condition:
+    Boolean condition (typed State ref or string):
     ```haxe
-    new ConditionalView("isLoggedIn", buildMainView(), buildLoginView())
+    new ConditionalView(isLoggedIn, buildMainView(), buildLoginView())
     ```
 
     Generates:
@@ -20,9 +20,9 @@ import sui.View;
     }
     ```
 
-    String equality condition:
+    String equality condition (typed State ref or string):
     ```haxe
-    new ConditionalView("currentScreen", "login", buildLoginView(), buildDefaultView())
+    new ConditionalView(currentScreen, "login", buildLoginView(), buildDefaultView())
     ```
 
     Generates:
@@ -40,8 +40,9 @@ class ConditionalView extends View {
     public var trueView:View;
     public var falseView:View;
 
-    /** Boolean condition: show trueView when state is true, falseView otherwise. **/
-    public function new(stateName:String, trueView:View, ?falseView:View) {
+    /** Boolean condition: show trueView when state is true, falseView otherwise.
+        Accepts a State<T> field reference or a string name. **/
+    public function new(stateName:Dynamic, trueView:View, ?falseView:View) {
         super();
         this.viewType = "ConditionalView";
         this.stateName = stateName;
