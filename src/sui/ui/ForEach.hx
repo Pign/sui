@@ -8,6 +8,12 @@ import sui.View;
 
     Usage:
     ```haxe
+    // Typed State reference (preferred):
+    new ForEach(todos, "i",
+        new Text("Item")
+    )
+
+    // String name (still supported for backward compat):
     new ForEach("todos", "i",
         new Text("Item")
     )
@@ -24,16 +30,16 @@ import sui.View;
     to reference properties of each item.
 **/
 class ForEach extends View {
-    public var arrayName:String;
+    public var arrayName:Dynamic;
     public var itemName:String;
     public var itemView:View;
 
     /**
-        @param arrayName Name of the @State array variable
+        @param arrayName State<Array<T>> field reference or string name of the @State array variable
         @param itemName  Name for the iteration variable in generated Swift
         @param itemView  View to render for each item (use {arrayName[itemName].prop} for interpolation)
     **/
-    public function new(arrayName:String, itemName:String, itemView:View) {
+    public function new(arrayName:Dynamic, itemName:String, itemView:View) {
         super();
         this.viewType = "ForEach";
         this.arrayName = arrayName;

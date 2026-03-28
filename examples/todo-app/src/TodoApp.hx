@@ -40,7 +40,7 @@ class TodoApp extends App {
                         StateAction.CustomSwift('if !newItemText.isEmpty { todos.append(TodoItem(title: newItemText, completed: false)); newItemText = "" }'))
                 ]).padding(),
                 new List([
-                    new ForEach("todos", "i",
+                    new ForEach(todos, "i",
                         new HStack([
                             Text.withState("{todos[i].title}")
                                 .font(FontStyle.Body),

@@ -1482,8 +1482,8 @@ class SwiftGenerator {
     **/
     static function forEachToSwift(args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
         var pad = ind(indent);
-        // args[0] = array state name (String), args[1] = item var name (String), args[2] = child view
-        var arrayName = if (args.length > 0) extractString(args[0]) else "items";
+        // args[0] = array state name (String) or State<Array> field ref, args[1] = item var name (String), args[2] = child view
+        var arrayName = if (args.length > 0) resolveStateName(args[0]) else "items";
         var itemName = if (args.length > 1) extractString(args[1]) else "item";
 
         var buf = new StringBuf();
