@@ -1555,6 +1555,48 @@ class SwiftGenerator {
     // to generically emit any Swift call without hardcoding.
     // Special case: Text.withState uses template interpolation.
 
+    /** Check if a field's return type is View or a View subclass. **/
+    static function returnsView(field:haxe.macro.Type.ClassField):Bool {
+        switch (field.type) {
+            case TFun(_, ret):
+                switch (ret) {
+                    case TInst(ref, _):
+                        var cls = ref.get();
+                        if (cls.name == "View" && cls.pack.join(".") == "sui") return true;
+                        // Check superclass chain for View
+                        var sc = cls.superClass;
+                        while (sc != null) {
+                            var scCls = sc.t.get();
+                            if (scCls.name == "View" && scCls.pack.join(".") == "sui") return true;
+                            sc = scCls.superClass;
+                        }
+                    default:
+                }
+            default:
+        }
+        return false;
+    }
+
+    /** Try to inline a view-returning function call. Returns null if not resolvable. **/
+    static function tryInlineViewCall(field:haxe.macro.Type.ClassField, args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
+        if (!returnsView(field)) return null;
+        var funcExpr = field.expr();
+        if (funcExpr == null) return null;
+
+        // Map call arguments to function parameter IDs in localBindings
+        switch (funcExpr.expr) {
+            case TFunction(f):
+                for (i in 0...f.args.length) {
+                    if (i < args.length) {
+                        localBindings.set(f.args[i].v.id, args[i]);
+                    }
+                }
+            default:
+        }
+
+        return walkFunc(funcExpr, indent);
+    }
+
     static function factoryToSwift(callee:haxe.macro.Type.TypedExpr, args:Array<haxe.macro.Type.TypedExpr>, indent:Int):String {
         var pad = ind(indent);
         switch (callee.expr) {
@@ -1571,6 +1613,10 @@ class SwiftGenerator {
                                 return '${pad}Text(${templateToSwift(template)})\n';
                         }
 
+                        // Try inlining view-returning function calls
+                        var inlined = tryInlineViewCall(field, args, indent);
+                        if (inlined != null) return inlined;
+
                         // Generic: read @:swiftName and @:swiftLabel metadata
                         var swiftName = getMetaString(field.meta, ":swiftName");
                         if (swiftName != null) {
@@ -1579,6 +1625,14 @@ class SwiftGenerator {
 
                         // Fallback: use Haxe class name + labeled args from metadata
                         return generateSwiftCall(cls.name, field, args, pad);
+
+                    case FInstance(_, _, fieldRef):
+                        var field = fieldRef.get();
+
+                        // Try inlining view-returning instance method calls
+                        var inlined = tryInlineViewCall(field, args, indent);
+                        if (inlined != null) return inlined;
+
                     default:
                 }
             default:
@@ -2029,6 +2083,11 @@ class SwiftGenerator {
             case TConst(TString(s)): s;
             case TCast(e, _): extractString(e);
             case TParenthesis(e): extractString(e);
+            case TLocal(v):
+                if (localBindings.exists(v.id))
+                    extractString(localBindings.get(v.id));
+                else
+                    null;
             default: null;
         }
     }
@@ -2045,6 +2104,11 @@ class SwiftGenerator {
             }
             case TCast(e, _): extractConstant(e);
             case TParenthesis(e): extractConstant(e);
+            case TLocal(v):
+                if (localBindings.exists(v.id))
+                    extractConstant(localBindings.get(v.id));
+                else
+                    null;
             default: null;
         }
     }
