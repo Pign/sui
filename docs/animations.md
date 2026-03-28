@@ -108,7 +108,7 @@ The `.transition()` modifier defines how a view enters and exits when used insid
 new Button("Show Detail", null,
     showDetail.tog().animated(AnimationCurve.Spring))
 
-new ConditionalView("showDetail",
+new ConditionalView(showDetail,
     // Slides in from the edge
     new Text("Detail content")
         .padding()
@@ -197,7 +197,7 @@ class AnimApp extends App {
             new Button("Toggle Detail", null,
                 showDetail.tog().animated(AnimationCurve.Spring)),
 
-            new ConditionalView("showDetail",
+            new ConditionalView(showDetail,
                 new Text("Detail!")
                     .padding()
                     .background(ColorValue.Blue)

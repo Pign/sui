@@ -1286,7 +1286,7 @@ class SwiftGenerator {
             case "ConditionalView":
                 // args: stateName, trueView, falseView (optional)
                 // or: stateName, matchValue (string), matchView, elseView (optional)
-                var stateName = if (args.length > 0) extractString(args[0]) else "condition";
+                var stateName = if (args.length > 0) resolveStateName(args[0]) else "condition";
                 var buf = new StringBuf();
 
                 // Detect string equality mode: 4 args where arg[1] is a string constant (not a view)

@@ -54,7 +54,7 @@ class AnimApp extends App {
             new Button("Toggle Detail", null,
                 showDetail.tog().animated(AnimationCurve.Spring)),
 
-            new ConditionalView("showDetail",
+            new ConditionalView(showDetail,
                 new VStack([
                     new Text("Detail View").font(FontStyle.Headline),
                     new Text("This appeared with a slide transition")
@@ -99,7 +99,7 @@ The fluent `.animated()` method wraps any `StateAction` in `withAnimation(.curve
 ### Transitions
 
 ```haxe
-new ConditionalView("showDetail",
+new ConditionalView(showDetail,
     detailView.transition("slide"),
     placeholder.transition("opacity")
 )
