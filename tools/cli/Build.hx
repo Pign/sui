@@ -81,6 +81,14 @@ class Build {
             Sys.setCwd(cwd);
             // Pass platform define for conditional compilation (#if sui_ios, #if sui_macos, #if sui_visionos)
             var haxeArgs = ["build.hxml", "-D", 'sui_$platform'];
+            // For non-macOS targets, tell hxcpp to cross-compile for the correct platform
+            if (platform == "ios") {
+                haxeArgs.push("-D");
+                haxeArgs.push(forDevice ? "iphoneos" : "iphonesim");
+            } else if (platform == "visionos") {
+                haxeArgs.push("-D");
+                haxeArgs.push(forDevice ? "xros" : "xrsimulator");
+            }
             var haxeResult = Sys.command("haxe", haxeArgs);
             Sys.setCwd(oldCwd);
             if (haxeResult != 0) {
@@ -127,18 +135,39 @@ class Build {
             // Find hxcpp include path
             var hxcppDir = findHxcppDir();
 
-            // Compile the C++ bridge against hxcpp headers
+            // Compile the C++ bridge against hxcpp headers.
+            // Architecture must match hxcpp's output:
+            //   macOS / iphoneos (device): arm64
+            //   iphonesim (simulator): x86_64 (hxcpp iphonesim-toolchain hardcodes this)
+            var isSimulator = !forDevice && (platform == "ios" || platform == "visionos");
+            var bridgeArch = isSimulator ? "x86_64" : "arm64";
+            var platformDefine = switch (platform) {
+                case "ios": forDevice ? "-DHX_IOS" : "-DIPHONESIM=IPHONESIM";
+                case "visionos": "-DHX_VISIONOS";
+                default: "-DHX_MACOS";
+            };
             var clangArgs = [
                 "-c", "-std=c++17",
                 '-I$hxcppDir/include',
                 '-I$cwd/build/cpp/include',
-                "-DHX_MACOS", "-DHXCPP_ARM64", "-DHXCPP_M64",
+                platformDefine, "-DHXCPP_M64",
                 "-DHXCPP_VISIT_ALLOCS", "-DHX_SMART_STRINGS",
                 "-DHXCPP_API_LEVEL=430",
-                "-arch", "arm64",
-                '$swiftGenDir/HaxeBridgeC.cpp',
-                "-o", '$buildDir/lib/HaxeBridgeC.o'
+                "-arch", bridgeArch,
             ];
+            if (bridgeArch == "arm64") clangArgs.push("-DHXCPP_ARM64");
+            if (platform != "macos") {
+                var sdk = switch (platform) {
+                    case "ios": forDevice ? "iphoneos" : "iphonesimulator";
+                    case "visionos": forDevice ? "xros" : "xrsimulator";
+                    default: "macosx";
+                };
+                clangArgs.push("-isysroot");
+                clangArgs.push(getSdkPath(sdk));
+            }
+            clangArgs.push('$swiftGenDir/HaxeBridgeC.cpp');
+            clangArgs.push("-o");
+            clangArgs.push('$buildDir/lib/HaxeBridgeC.o');
             var clangResult = Sys.command("clang++", clangArgs);
             if (clangResult != 0) {
                 Sys.println("Error: C++ bridge compilation failed.");
@@ -232,9 +261,9 @@ class Build {
             return ["-destination", 'generic/platform=${platform == "ios" ? "iOS" : "visionOS"}'];
         }
 
-        // Simulator
+        // Simulator — use x86_64 arch to match hxcpp's iphonesim toolchain output
         return switch (platform) {
-            case "ios": ["-destination", "platform=iOS Simulator,name=iPhone 16"];
+            case "ios": ["-destination", "platform=iOS Simulator,name=iPhone 16,arch=x86_64"];
             case "visionos": ["-destination", "platform=visionOS Simulator,name=Apple Vision Pro"];
             default: [];
         }
@@ -526,6 +555,16 @@ class Build {
         if (FileSystem.exists(common)) return common;
 
         return "/usr/local/lib/haxe/lib/hxcpp";
+    }
+
+    static function getSdkPath(sdk:String):String {
+        try {
+            var proc = new sys.io.Process("xcrun", ["--sdk", sdk, "--show-sdk-path"]);
+            var path = StringTools.trim(proc.stdout.readAll().toString());
+            proc.close();
+            if (path.length > 0) return path;
+        } catch (e:Dynamic) {}
+        return "";
     }
 
     // --- Project generation ---
