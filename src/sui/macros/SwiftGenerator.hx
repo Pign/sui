@@ -1431,8 +1431,47 @@ class SwiftGenerator {
             if (isBinding) return '$$$str'; // emit $varName
             return '"${esc(str)}"';
         }
+        // For binding params, try to extract the field name from a state reference.
+        // This handles both direct field refs (this.name) and @:from abstract
+        // conversions (TextInputBinding.fromState(this.name)).
+        if (isBinding) {
+            var fieldName = extractBindingFieldName(e);
+            if (fieldName != null) return '$$$fieldName';
+        }
         var c = extractConstant(e);
         return c;
+    }
+
+    /** Extract a field name from a state field reference, unwrapping through
+        abstract @:from calls, casts, and property chains like this.field.name.
+        Returns the name of the field on `this` (the App class). **/
+    static function extractBindingFieldName(expr:haxe.macro.Type.TypedExpr):String {
+        var e = unwrap(expr);
+        switch (e.expr) {
+            case TField(obj, FInstance(_, _, fieldRef)):
+                // If this field is directly on `this`, return its name
+                var uObj = unwrap(obj);
+                switch (uObj.expr) {
+                    case TConst(TThis):
+                        return fieldRef.get().name;
+                    case TField(_, _):
+                        // Chain like this.newsletter.name — recurse on inner object
+                        return extractBindingFieldName(obj);
+                    default:
+                }
+            case TField(_, FStatic(_, fieldRef)):
+                return fieldRef.get().name;
+            case TCall(_, args):
+                // Unwrap through @:from conversion calls
+                if (args.length > 0) return extractBindingFieldName(args[0]);
+            case TNew(_, _, args):
+                // Unwrap through abstract constructor calls
+                if (args.length > 0) return extractBindingFieldName(args[0]);
+            case TCast(inner, _):
+                return extractBindingFieldName(inner);
+            default:
+        }
+        return null;
     }
 
     // ── ForEach ─────────────────────────────────────────────────────
