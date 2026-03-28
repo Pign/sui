@@ -1904,13 +1904,13 @@ class SwiftGenerator {
 
             // --- Content-bearing modifiers ---
             case "sheet":
-                var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
+                var binding = if (args.length > 0) resolveStateName(args[0]) else "isPresented";
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 2) else '${pad}    Text("Sheet")\n';
                 'sheet(isPresented: $$${binding}) {\n${contentSwift}${pad}}';
             case "alert":
                 var title = if (args.length > 0) extractString(args[0]) else "Alert";
-                var binding = if (args.length > 1) extractString(args[1]) else "showAlert";
+                var binding = if (args.length > 1) resolveStateName(args[1]) else "showAlert";
                 var message = if (args.length > 2) extractString(args[2]) else null;
                 if (message != null)
                     'alert("${esc(title != null ? title : "")}", isPresented: $$${binding}) {} message: { Text("${esc(message)}") }';
@@ -1918,7 +1918,7 @@ class SwiftGenerator {
                     'alert("${esc(title != null ? title : "")}", isPresented: $$${binding}) { Button("OK") {} }';
             case "confirmationDialog":
                 var title = if (args.length > 0) extractString(args[0]) else "Confirm";
-                var binding = if (args.length > 1) extractString(args[1]) else "showConfirm";
+                var binding = if (args.length > 1) resolveStateName(args[1]) else "showConfirm";
                 var pad = ind(indent + 1);
                 var contentSwift = if (args.length > 2) viewToSwift(args[2], indent + 2) else '${pad}    Button("OK") {}\n';
                 'confirmationDialog("${esc(title != null ? title : "")}", isPresented: $$${binding}) {\n${contentSwift}${pad}}';
@@ -1999,12 +1999,12 @@ class SwiftGenerator {
 
             // --- Presentation ---
             case "popover":
-                var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
+                var binding = if (args.length > 0) resolveStateName(args[0]) else "isPresented";
                 var pad2 = ind(indent + 1);
                 var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 2) else '${pad2}    Text("Popover")\n';
                 'popover(isPresented: $$${binding}) {\n${contentSwift}${pad2}}';
             case "fullScreenCover":
-                var binding = if (args.length > 0) extractString(args[0]) else "isPresented";
+                var binding = if (args.length > 0) resolveStateName(args[0]) else "isPresented";
                 var pad2 = ind(indent + 1);
                 var contentSwift = if (args.length > 1) viewToSwift(args[1], indent + 2) else '${pad2}    Text("Content")\n';
                 'fullScreenCover(isPresented: $$${binding}) {\n${contentSwift}${pad2}}';

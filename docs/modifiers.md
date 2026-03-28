@@ -133,17 +133,17 @@ new Image("photo").blur(blurAmount)
 
 | Modifier | Parameters | Description |
 |----------|-----------|-------------|
-| `.sheet(binding, content)` | `binding: String`, `content: View` | Modal sheet |
-| `.fullScreenCover(binding, content)` | `binding: String`, `content: View` | Full-screen modal |
-| `.popover(binding, content)` | `binding: String`, `content: View` | Popover |
-| `.alert(title, binding, message)` | `title: String`, `binding: String`, `message: String` | Alert dialog |
-| `.confirmationDialog(title, binding, content)` | `title: String`, `binding: String`, `content: View` | Action sheet |
+| `.sheet(binding, content)` | `binding: State<Bool>`, `content: View` | Modal sheet |
+| `.fullScreenCover(binding, content)` | `binding: State<Bool>`, `content: View` | Full-screen modal |
+| `.popover(binding, content)` | `binding: State<Bool>`, `content: View` | Popover |
+| `.alert(title, binding, message)` | `title: String`, `binding: State<Bool>`, `message: String` | Alert dialog |
+| `.confirmationDialog(title, binding, content)` | `title: String`, `binding: State<Bool>`, `content: View` | Action sheet |
 | `.contextMenu(content)` | `content: View` | Long-press context menu |
 
 ```haxe
 new VStack([...])
-    .sheet("showSheet", new Text("Sheet content"))
-    .alert("Warning", "showAlert", "Are you sure?")
+    .sheet(showSheet, new Text("Sheet content"))
+    .alert("Warning", showAlert, "Are you sure?")
     .contextMenu(new Button("Delete", null, StateAction.CustomSwift("deleteItem()")))
 ```
 

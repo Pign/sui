@@ -105,17 +105,17 @@ class View {
         return this;
     }
 
-    public function sheet(isPresentedBinding:String, content:View):View {
+    public function sheet(isPresentedBinding:Dynamic, content:View):View {
         modifierChain.push(ViewModifier.Sheet(isPresentedBinding, content));
         return this;
     }
 
-    public function alert(title:String, isPresentedBinding:String, ?message:String):View {
+    public function alert(title:String, isPresentedBinding:Dynamic, ?message:String):View {
         modifierChain.push(ViewModifier.Alert(title, isPresentedBinding, message));
         return this;
     }
 
-    public function confirmationDialog(title:String, isPresentedBinding:String, content:View):View {
+    public function confirmationDialog(title:String, isPresentedBinding:Dynamic, content:View):View {
         modifierChain.push(ViewModifier.ConfirmationDialog(title, isPresentedBinding, content));
         return this;
     }
@@ -203,7 +203,7 @@ class View {
     }
 
     /** Present a full-screen modal. **/
-    public function fullScreenCover(isPresentedBinding:String, content:View):View {
+    public function fullScreenCover(isPresentedBinding:Dynamic, content:View):View {
         modifierChain.push(ViewModifier.FullScreenCover(isPresentedBinding, content));
         return this;
     }
@@ -271,7 +271,7 @@ class View {
     }
 
     /** Present a popover. **/
-    public function popover(isPresentedBinding:String, content:View):View {
+    public function popover(isPresentedBinding:Dynamic, content:View):View {
         modifierChain.push(ViewModifier.Popover(isPresentedBinding, content));
         return this;
     }

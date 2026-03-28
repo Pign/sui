@@ -40,9 +40,9 @@ enum ViewModifier {
     TextFieldStyle(style:sui.View.TextFieldStyleValue);
 
     // Presentation
-    Sheet(isPresentedBinding:String, content:sui.View);
-    Alert(title:String, isPresentedBinding:String, message:Null<String>);
-    ConfirmationDialog(title:String, isPresentedBinding:String, content:sui.View);
+    Sheet(isPresentedBinding:Dynamic, content:sui.View);
+    Alert(title:String, isPresentedBinding:Dynamic, message:Null<String>);
+    ConfirmationDialog(title:String, isPresentedBinding:Dynamic, content:sui.View);
 
     // Search & Toolbar
     Searchable(textBinding:String, prompt:Null<String>);
@@ -82,8 +82,8 @@ enum ViewModifier {
     Grayscale(amount:Dynamic);
 
     // Presentation
-    FullScreenCover(isPresentedBinding:String, content:sui.View);
-    Popover(isPresentedBinding:String, content:sui.View);
+    FullScreenCover(isPresentedBinding:Dynamic, content:sui.View);
+    Popover(isPresentedBinding:Dynamic, content:sui.View);
     ContextMenu(content:sui.View);
 
     // List
