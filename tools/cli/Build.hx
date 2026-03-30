@@ -26,6 +26,7 @@ class Build {
         var xcodeOnly = args.indexOf("--xcode-only") != -1;
         var verbose = args.indexOf("--verbose") != -1 || args.indexOf("-v") != -1;
         var release = args.indexOf("--release") != -1;
+        var hotReload = args.indexOf("--watch") != -1 || args.indexOf("--hot-reload") != -1;
         var configuration = release ? "Release" : "Debug";
 
         // Device flag: --device or --device=MyiPhone
@@ -197,6 +198,11 @@ class Build {
         // Copy runtime Swift files from sui library
         copyRuntimeFiles(buildDir);
 
+        // Hot reload mode: include DynamicView renderer and ViewNode bridge
+        if (hotReload) {
+            copyHotReloadFiles(buildDir);
+        }
+
         // Copy user-provided Swift files from swift/ directory
         copyUserSwiftFiles(cwd, buildDir);
 
@@ -357,6 +363,40 @@ class Build {
         } else {
             Sys.println("Warning: Runtime Swift files not found at $runtimeDir");
         }
+    }
+
+    static function copyHotReloadFiles(buildDir:String) {
+        var libPath = getLibPath();
+
+        // Copy DynamicView.swift (the runtime SwiftUI renderer)
+        var dynamicView = '$libPath/runtime/DynamicView.swift';
+        if (FileSystem.exists(dynamicView)) {
+            File.copy(dynamicView, '$buildDir/Sources/DynamicView.swift');
+        }
+
+        // Copy ViewNode bridge header
+        var bridgeHeader = '$libPath/runtime/ViewNodeBridgeC.h';
+        if (FileSystem.exists(bridgeHeader)) {
+            File.copy(bridgeHeader, '$buildDir/Sources/ViewNodeBridgeC.h');
+        }
+
+        // In hot reload mode, override the ContentView to use HotReloadRootView
+        var contentView = '$buildDir/Sources/ContentView.swift';
+        if (FileSystem.exists(contentView)) {
+            var content = File.getContent(contentView);
+            // Replace the body of MainScreen with HotReloadRootView
+            // The generated ContentView has a MainScreen() function — wrap it
+            var hotReloadWrapper = "// Hot reload mode — uses DynamicView renderer\n"
+                + "import SwiftUI\n\n"
+                + "struct MainScreen: View {\n"
+                + "    var body: some View {\n"
+                + "        HotReloadRootView()\n"
+                + "    }\n"
+                + "}\n";
+            File.saveContent(contentView, hotReloadWrapper);
+        }
+
+        Sys.println("  [hot-reload] DynamicView renderer enabled");
     }
 
     static function copyUserSwiftFiles(cwd:String, buildDir:String) {
