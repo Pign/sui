@@ -63,7 +63,7 @@ class App extends sui.App {
 
         // Remembered, not sampled: the host asks for a picture when the
         // application leaves the foreground, and the application asks with
-        // Resample.request whenever its content became worth showing.
+        // its own effect follows, so a write to a cell it read republishes.
         sui.mui.GlanceBridge.attach(this);
 
         // The first picture is NOT taken here: this constructor runs

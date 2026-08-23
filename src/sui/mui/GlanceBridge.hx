@@ -60,9 +60,9 @@ class GlanceBridge {
 		`null` when it declares none.
 
 		Unlike aui's, this has one application to ask and no cold-process case:
-		nothing samples here but the application itself, in answer to its own
-		`Resample.request`. The extension reads what was left for it, and never
-		asks us for anything.
+		nothing samples here but the application itself, driven by the effect
+		`GlancePublish.follow` starts. The extension reads what was left for it,
+		and never asks us for anything.
 	**/
 	public static function sample(app:sui.mui.App):Null<String> {
 		var decl = pickGlance(app.surfaces());

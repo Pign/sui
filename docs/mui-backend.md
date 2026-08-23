@@ -66,9 +66,14 @@ Android widget stores. One contract, three distances.
   {"type":"Button","props":{"label":"+1"},"actions":{"onClick":0}}]}
 ```
 
-A new picture is taken when the application leaves the foreground — the same
-moment `aui` publishes on — and whenever the application asks with
-`mui.surface.Resample.request(Glance)`.
+A new picture is taken **whenever a cell the declaration reads is written**.
+The declaration is evaluated inside its own effect (`GlancePublish.follow`), so
+`rui` knows exactly which cells it depends on and a write to any of them
+re-samples and republishes. The application asks for nothing.
+
+It is also taken when the application leaves the foreground — the same moment
+`aui` publishes on — which covers a change that came from somewhere no cell
+saw.
 
 **Not at construction.** The obvious place is wrong and fails loudly: a sui
 `mui.App`'s constructor runs *before* the subclass has initialised its

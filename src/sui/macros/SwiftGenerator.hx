@@ -444,11 +444,10 @@ class SwiftGenerator {
             appSwift.add("\n    @Bindable var appState = AppState.shared\n");
         }
         // A Glance surface is a snapshot: something has to say when the
-        // picture is worth retaking. The application says so itself with
-        // `mui.surface.Resample.request`, and the host says so when the
-        // application leaves the foreground — the same moment aui publishes
-        // on, and the honest one: what you last saw is what the widget should
-        // show.
+        // picture is worth retaking. Its own effect says so — a write to any
+        // cell the declaration read republishes it — and the host says so too
+        // when the application leaves the foreground, which covers a change
+        // that came from somewhere no cell saw.
         var hasGlance = declaresGlanceSurface(cls);
         if (hasGlance) {
             appSwift.add("    @Environment(\\.scenePhase) private var scenePhase\n\n");
