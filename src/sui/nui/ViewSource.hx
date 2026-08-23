@@ -624,6 +624,11 @@ class ViewSource implements NodeSource<View> {
 		n = resolveWalked(n);
 		if (n == null) return;
 		var action:Dynamic = Reflect.field(n, "action");
-		if (action != null) action();
+		if (action == null) return;
+		// One gesture, one render. The handler may write several cells; an
+		// effect reading them should run once, when the gesture is over.
+		// State sinks are not delayed by this — `State.set` calls them
+		// directly — so nothing a person can see waits on the scope.
+		rui.Signal.Scheduler.batch(() -> action());
 	}
 }
