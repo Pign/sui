@@ -687,7 +687,7 @@ class SwiftGenerator {
         // The snapshot shim, emitted for EVERY application.
         //
         // `sui.mui.GlancePublish` calls this symbol, and that class is
-        // compiled into any app that touches `mui.surface.Resample` — so a
+        // compiled into every sui app, whether or not it declares a widget — so a
         // symbol that existed only for widget-declaring apps would turn a
         // missing feature into a link error. With no widget it stores the
         // snapshot and reloads nothing, which costs a write nobody reads.
@@ -785,7 +785,7 @@ class SwiftGenerator {
             "/// Where a published snapshot is left for the widget to find.",
             "///",
             "/// Emitted for every application, widget or not: `sui.mui.GlancePublish`",
-            "/// is compiled into any app that touches `mui.surface.Resample`, and a",
+            "/// is compiled into every sui app, widget or not, and a",
             "/// symbol that existed only for widget-declaring apps would turn a",
             "/// missing feature into a link error.",
             "enum SuiGlanceStore {",
@@ -928,7 +928,7 @@ class SwiftGenerator {
             "",
             "    /// One entry, never expiring on a schedule: this surface is not a",
             "    /// clock. The application says when the picture changed, through",
-            "    /// mui.surface.Resample, and WidgetCenter reloads then.",
+            "    /// follows its declaration, and WidgetCenter reloads then.",
             "    func getTimeline(in context: Context, completion: @escaping (Timeline<SuiGlanceEntry>) -> Void) {",
             "        let entry = SuiGlanceEntry(date: Date(), json: SuiGlanceStore.read())",
             "        completion(Timeline(entries: [entry], policy: .never))",

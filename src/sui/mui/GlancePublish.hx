@@ -16,7 +16,7 @@ package sui.mui;
 
 	The shim is emitted for **every** sui application, and does nothing when
 	there is no widget. That is deliberate: this class is compiled into every
-	app that touches `mui.surface.Resample`, and a symbol that existed only
+	sui app, widget or not, and a symbol that existed only
 	for widget-declaring apps would turn a missing feature into a link error.
 **/
 @:keep
@@ -141,7 +141,7 @@ class GlancePublish {
 
 		The symbol is looked up at RUNTIME rather than linked, and that is
 		not fussiness. This class is compiled into every application that
-		touches `mui.surface.Resample`, including the plain Haxe executable a
+		sui application, including the plain Haxe executable a
 		macOS build links **before Xcode ever sees it** — a link with no Swift
 		in it at all, which an ordinary reference fails. A weak declaration
 		does not save it either: on Darwin `weak` marks a definition, and an

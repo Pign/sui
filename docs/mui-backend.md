@@ -85,9 +85,9 @@ whole.
 ### Three things that are not obvious
 
 - **The publish symbol is resolved at runtime**, with `dlsym(RTLD_DEFAULT)`,
-  not linked. `sui.mui.GlancePublish` is compiled into every application that
-  touches `mui.surface.Resample` — including the plain Haxe executable a macOS
-  build links *before Xcode ever sees it*, a link with no Swift in it. A weak
+  not linked. `sui.mui.GlancePublish` is compiled into every sui application,
+  widget or not — including the plain Haxe executable a macOS build links
+  *before Xcode ever sees it*, a link with no Swift in it. A weak
   declaration does not save that: on Darwin `weak` marks a definition, and an
   undefined weak reference still has to resolve.
 - **The extension's `Info.plist` must name every key itself.** An explicit

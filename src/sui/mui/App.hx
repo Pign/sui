@@ -49,17 +49,6 @@ class App extends sui.App {
         // register is what lets a macOS app serve a surface to another
         // machine.
         mui.surface.Describe.impl = v -> sui.nui.Describe.describe(v);
-        // How this backend takes a new sample. WidgetKit's widget is a
-        // separate binary in its own sandbox, so "taking a sample" means
-        // leaving one where that binary can read it: the native shim writes
-        // the snapshot to the App Group both targets are entitled to and
-        // tells WidgetCenter to reload. Nothing else here is a snapshot
-        // surface, so nothing else answers.
-        mui.surface.Resample.impl = (role, _) -> {
-            if (role != mui.surface.SurfaceRole.Glance) return;
-            sui.mui.GlancePublish.resampleAndPublish();
-        };
-
         // Remembered, not sampled: the declaration's thunk would read cells the
         // subclass has not initialised yet. The surface starts following after
         // `setApp`, when the instance is whole.
