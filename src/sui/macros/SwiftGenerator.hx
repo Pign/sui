@@ -1085,7 +1085,11 @@ class SwiftGenerator {
         buf.add("// boots hxcpp, builds the app, hands it to ViewNodeBridge.\n");
         buf.add("#include <hxcpp.h>\n");
         buf.add('#include <$headerPath>\n');
-        buf.add("#include <sui/runtime/ViewNodeBridge.h>\n\n");
+        buf.add("#include <sui/runtime/ViewNodeBridge.h>\n");
+        // Above `viewnode_boot`, which now calls into it. It used to sit below,
+        // beside the entries that were the only callers.
+        if (declaresGlanceSurface(cls)) buf.add("#include <sui/mui/GlancePublish.h>\n");
+        buf.add("\n");
         buf.add("extern \"C\" void viewnode_boot(void) {\n");
         buf.add("    static bool _hxcppBooted = false;\n");
         buf.add("    int dummy = 0;\n");
@@ -1094,6 +1098,14 @@ class SwiftGenerator {
         buf.add("        if (!_hxcppBooted) { hx::Boot(); __boot_all(); _hxcppBooted = true; }\n");
         buf.add('        auto app = $cppSym::__new();\n');
         buf.add("        ::sui::runtime::ViewNodeBridge_obj::setApp(app);\n");
+        if (declaresGlanceSurface(cls)) {
+            // The instance is whole here and not a line earlier: `mui.App`'s
+            // constructor runs before the subclass initialises its @:state
+            // fields, so following there would evaluate the declaration against
+            // null cells. This is the first moment it can be done, and doing it
+            // is what makes the widget follow a write without anyone asking.
+            buf.add("        ::sui::mui::GlancePublish_obj::follow();\n");
+        }
         buf.add("    } catch (::Dynamic _e) {\n");
         buf.add('        fprintf(stderr, "[sui] viewnode_boot: Haxe exception during boot\\n");\n');
         buf.add("    } catch (...) {\n");
@@ -1110,7 +1122,7 @@ class SwiftGenerator {
         // foreground, which is the same moment aui publishes on: what you last
         // saw in the app is what the widget should show.
         if (declaresGlanceSurface(cls)) {
-            buf.add("\n#include <sui/mui/GlancePublish.h>\n");
+
 
             // Boot with NO mounting, for a process that has no window.
             //

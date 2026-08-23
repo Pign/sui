@@ -35,13 +35,52 @@ class GlancePublish {
 		if (json != null) publish(json);
 	}
 
+	/** The surface's own effect, or `null` while nothing is being followed. **/
+	static var _following:Null<rui.Signal.Effect> = null;
+
+	/**
+		Begin following the Glance declaration, so a write republishes it.
+
+		**This is the whole of the automatic resample.** The effect evaluates the
+		declaration's thunk; `rui` records every cell that thunk read; a write to
+		any of them re-runs it, and the re-run samples and publishes. Nobody has
+		to remember to ask.
+
+		`cafos.nui.NuiProjector` has done exactly this for the Companion surface
+		since it shipped — its comment says "*sampling `content()` inside it
+		subscribes this surface to every cell the tree reads, so a write
+		re-projects here and nowhere else*". Glance was the one snapshot corner
+		left asking the application to say when, which is why a button that did
+		not call `Resample.request` left the widget showing a number nobody had.
+
+		Dependencies are recaptured on every run (`Effect` clears them first), so
+		a declaration whose branches read different cells is followed correctly
+		without anything special.
+
+		**Idempotent, and called from both processes.** The application starts it
+		after `setApp`, when the instance is whole — the constructor is too early,
+		for the reason `GlanceBridge.attach` documents. The extension starts it
+		before invoking a tap, which is also what builds the action table there.
+	**/
+	@:keep public static function follow():Void {
+		if (_following != null) return;
+		if (!sui.mui.GlanceBridge.hasGlance()) return;
+		_following = new rui.Signal.Effect(() -> resampleAndPublish());
+	}
+
+	/** Stop following. For a host tearing the application down. **/
+	@:keep public static function unfollow():Void {
+		var e = _following;
+		_following = null;
+		if (e != null) e.dispose();
+	}
+
 	/**
 		A tap in the widget, run in the widget's own process.
 
 		Called from the generated C entry `sui_glance_invoke`, which the
-		extension's `AppIntent` reaches after `sui_glance_boot_headless`. The
-		order of these four steps is the whole of it, and none of them may
-		move:
+		extension's `AppIntent` reaches after `sui_glance_boot_headless`. Three
+		steps now, and the order still matters:
 
 		1. **Name ourselves.** Writes from here are the extension's, not the
 		   application's. The sequence arbitrates, never the name — but a store
@@ -49,27 +88,32 @@ class GlancePublish {
 		2. **Rehydrate.** The application may have changed a durable cell since
 		   this process last looked, and an extension process is kept alive
 		   between taps; what it holds is only right after asking the store.
-		3. **Sample, then invoke.** Sampling rebuilds the `ActionTable` in this
-		   process, which is what makes the launcher's id resolve at all — ids
-		   are keyed by place, so the same button gets the same id here as it
-		   got in the application.
-		4. **Sample again and publish.** The closure has just changed a cell,
-		   the picture the launcher holds is now one tap old, and nobody else
-		   is going to notice.
+		3. **Follow, then invoke.** Following samples once, which is what builds
+		   the `ActionTable` in this process and makes the launcher's id resolve
+		   — ids are keyed by place, so the same button gets the same id here as
+		   it got in the application.
 
-		Sampling twice is not waste: the first is what makes the id mean
-		anything, the second is what the user sees.
+		**This method used to sample twice and publish by hand**, and said so at
+		length: the first sample to make the id mean something, the second to
+		show the result. The second is gone. The closure writes a cell, the
+		effect started in step 3 wakes on that write, samples and publishes —
+		the same path a change from anywhere else takes. Republishing here as
+		well would publish the same picture twice.
 	**/
 	@:keep public static function invokeAndPublish(id:Int):Void {
 		rui.state.Durable.writer = "glance";
 		rui.state.Durable.rehydrate();
 
-		var before = sui.mui.GlanceBridge.sampleAgain();
-		if (before == null) return; // no Glance declaration: nothing to act on
-		sui.mui.GlanceBridge.invoke(id);
+		// Starting to follow IS the sample that builds the action table in this
+		// process, which is what makes the launcher's id resolve. It used to be
+		// an explicit `sampleAgain()` here; the effect's first run does it.
+		follow();
+		if (_following == null) return; // no Glance declaration: nothing to act on
 
-		var after = sui.mui.GlanceBridge.sampleAgain();
-		if (after != null) publish(after);
+		// And the republish is no longer written here either: the closure writes
+		// a cell, the effect wakes on it, samples and publishes. One path for a
+		// tap and for anything else that moves the same cell.
+		sui.mui.GlanceBridge.invoke(id);
 	}
 
 	/**

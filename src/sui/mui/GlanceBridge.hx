@@ -100,6 +100,13 @@ class GlanceBridge {
 		return mine == null ? null : sample(mine);
 	}
 
+	/** Whether this application declares a Glance surface at all. What
+		decides if there is anything to follow. **/
+	public static function hasGlance():Bool {
+		var mine = _sampled;
+		return mine != null && pickGlance(mine.surfaces()) != null;
+	}
+
 	/**
 		Run the closure the widget's tap names.
 
