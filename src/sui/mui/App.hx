@@ -57,13 +57,12 @@ class App extends sui.App {
         // surface, so nothing else answers.
         mui.surface.Resample.impl = (role, _) -> {
             if (role != mui.surface.SurfaceRole.Glance) return;
-            var json = sui.mui.GlanceBridge.sample(this);
-            if (json != null) sui.mui.GlancePublish.publish(json);
+            sui.mui.GlancePublish.resampleAndPublish();
         };
 
-        // Remembered, not sampled: the host asks for a picture when the
-        // application leaves the foreground, and the application asks with
-        // its own effect follows, so a write to a cell it read republishes.
+        // Remembered, not sampled: the declaration's thunk would read cells the
+        // subclass has not initialised yet. The surface starts following after
+        // `setApp`, when the instance is whole.
         sui.mui.GlanceBridge.attach(this);
 
         // The first picture is NOT taken here: this constructor runs

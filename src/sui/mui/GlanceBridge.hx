@@ -18,10 +18,10 @@ import nui.Snapshot.ActionTable;
 	container both targets are entitled to.
 
 	That is the only difference, and it is worth stating plainly because the
-	rest is identical: the content thunk runs, `sui.nui.Describe` turns the
-	tree into `nui` nodes, and `nui.Snapshot.project` turns those into pure
-	data — the same shape a Companion frame carries over the network and the
-	same shape the Android widget stores. One contract, three distances.
+	rest is identical — and is no longer written here. `mui.surface.Follow`
+	runs the thunk, describes the tree and projects it, for every snapshot
+	surface on every backend. What is left in this file is what is sui's: which
+	declaration to follow, and where a tap lands.
 
 	## What crosses, and what cannot
 
@@ -52,33 +52,8 @@ import nui.Snapshot.ActionTable;
 **/
 @:keep
 class GlanceBridge {
-	static var _table:Null<ActionTable> = null;
 	static var _sampled:Null<sui.mui.App> = null;
-
-	/**
-		Sample the running application's Glance surface as snapshot JSON, or
-		`null` when it declares none.
-
-		Unlike aui's, this has one application to ask and no cold-process case:
-		nothing samples here but the application itself, driven by the effect
-		`GlancePublish.follow` starts. The extension reads what was left for it,
-		and never asks us for anything.
-	**/
-	public static function sample(app:sui.mui.App):Null<String> {
-		var decl = pickGlance(app.surfaces());
-		if (decl == null) return null;
-
-		var content = switch (decl) {
-			case Tree(_, _, c): c;
-			case _: null;
-		}
-		if (content == null) return null;
-
-		_sampled = app;
-		if (_table == null) _table = new ActionTable();
-		var node = sui.nui.Describe.describe(content());
-		return haxe.Json.stringify(Snapshot.project(node, _table));
-	}
+	static var _follower:Null<mui.surface.Follow.Follower> = null;
 
 	/**
 		Remember the application without sampling it.
@@ -86,43 +61,42 @@ class GlanceBridge {
 		Called from `sui.mui.App`'s constructor, where sampling would be fatal
 		— the subclass has not initialised its `@:state` fields yet, so the
 		declaration's thunk would read a null cell and take the boot down with
-		it. Holding the reference costs nothing and is what lets the scene-phase
-		observer ask for a sample later, when the application is whole.
+		it. Holding the reference costs nothing and is what lets the surface be
+		followed later, when the application is whole.
 	**/
 	public static function attach(app:sui.mui.App):Void {
 		_sampled = app;
 	}
 
-	/** The application this bridge last sampled, for a resample that names no
-		application of its own. **/
-	public static function sampleAgain():Null<String> {
+	/** The Glance declaration this application makes, or `null`. **/
+	public static function declaration():Null<SurfaceDecl> {
 		var mine = _sampled;
-		return mine == null ? null : sample(mine);
+		return mine == null ? null : pickGlance(mine.surfaces());
 	}
 
-	/** Whether this application declares a Glance surface at all. What
-		decides if there is anything to follow. **/
-	public static function hasGlance():Bool {
-		var mine = _sampled;
-		return mine != null && pickGlance(mine.surfaces()) != null;
+	/** Told who is following, so a tap can reach the table that follower owns.
+		The table lives with the effect that fills it -- keeping a second one
+		here is how ids and closures drift apart. **/
+	public static function followedBy(f:Null<mui.surface.Follow.Follower>):Void {
+		_follower = f;
 	}
 
 	/**
 		Run the closure the widget's tap names.
 
-		The caller must have sampled first, in this process, or the table is
-		empty and the id names nothing. `GlancePublish.invokeAndPublish` is
-		what does that in order; nothing else should call this directly.
+		The caller must be following first, in this process, or the table is
+		empty and the id names nothing. `GlancePublish.invokeAndPublish` is what
+		does that in order.
 
-		An id that resolves to nothing is not silence: `ActionTable.invoke`
-		says so. In a cold extension the usual cause is a tree whose shape
-		changed between the picture the launcher kept and this sample — a list
-		one item shorter — and the honest answer is to say which id went
-		missing rather than to run a neighbour's closure.
+		An id that resolves to nothing is not silence: `ActionTable.invoke` says
+		so. In a cold extension the usual cause is a tree whose shape changed
+		between the picture the launcher kept and this sample — a list one item
+		shorter — and the honest answer is to say which id went missing rather
+		than to run a neighbour's closure.
 	**/
 	public static function invoke(id:Int, ?arg:String):Void {
-		if (_table == null) return;
-		_table.invoke(id, arg);
+		var f = _follower;
+		if (f != null) f.invoke(id, arg);
 	}
 
 	/**

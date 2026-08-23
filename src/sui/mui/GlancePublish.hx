@@ -31,71 +31,48 @@ class GlancePublish {
 		the one it last sampled, and on this backend there is only ever one.
 	**/
 	@:keep public static function resampleAndPublish():Void {
-		var json = sui.mui.GlanceBridge.sampleAgain();
+		var f = _follower;
+		if (f == null) return;
+		var json = f.sampleNow();
 		if (json != null) publish(json);
 	}
 
-	/** The surface's own effect, or `null` while nothing is being followed. **/
-	static var _following:Null<rui.Signal.Effect> = null;
+	/** What is following the Glance declaration, or `null` while nothing is. **/
+	static var _follower:Null<mui.surface.Follow.Follower> = null;
 
 	/**
 		Begin following the Glance declaration, so a write republishes it.
 
-		**This is the whole of the automatic resample.** The effect evaluates the
-		declaration's thunk; `rui` records every cell that thunk read; a write to
-		any of them re-runs it, and the re-run samples and publishes. Nobody has
-		to remember to ask.
+		The mechanism is `mui.surface.Follow` — shared with `aui`'s widget and
+		with the Companion projection, because a snapshot surface has no host
+		reactivity anywhere and noticing is always ours to do. What stays here
+		is the one thing that is sui's: writing the picture into the App Group
+		container the extension reads.
 
-		`cafos.nui.NuiProjector` has done exactly this for the Companion surface
-		since it shipped — its comment says "*sampling `content()` inside it
-		subscribes this surface to every cell the tree reads, so a write
-		re-projects here and nowhere else*". Glance was the one snapshot corner
-		left asking the application to say when, which is why a button that did
-		not call `Resample.request` left the widget showing a number nobody had.
+		**Idempotent, and called from both processes.** The application starts
+		it after `setApp`, when the instance is whole — the constructor is too
+		early, for the reason `GlanceBridge.attach` documents. The extension
+		starts it before invoking a tap, which is also what builds the action
+		table there.
 
-		Dependencies are recaptured on every run (`Effect` clears them first), so
-		a declaration whose branches read different cells is followed correctly
-		without anything special.
-
-		**Idempotent, and called from both processes.** The application starts it
-		after `setApp`, when the instance is whole — the constructor is too early,
-		for the reason `GlanceBridge.attach` documents. The extension starts it
-		before invoking a tap, which is also what builds the action table there.
+		`publishFirst` is false in the extension: its first run would publish
+		this process's own pre-tap state over the application's picture. That
+		question now lives in `Follow`, asked once for every backend.
 	**/
 	@:keep public static function follow(publishFirst:Bool = true):Void {
-		if (_following != null) return;
-		if (!sui.mui.GlanceBridge.hasGlance()) return;
-
-		// The first run's job is to be subscribed and to build the action
-		// table; whether it should also PUBLISH depends on who is following.
-		//
-		// The application seeds the widget at launch, so it publishes. The
-		// **extension must not**: its first run happens as a tap arrives, and
-		// what it would publish is this process's own pre-tap state — which is
-		// not the application's. Publishing it overwrites the picture the
-		// application put there, and the widget jumps to a number that only
-		// ever existed inside the extension.
-		//
-		// Found by Benjamin tapping `+` and watching the count restart from
-		// somewhere else. I had reasoned this first publish was "harmless, just
-		// a wasted reload" — true only when every cell it reads is durable, and
-		// the shared example is not.
-		var seeding = !publishFirst;
-		_following = new rui.Signal.Effect(() -> {
-			if (seeding) {
-				seeding = false;
-				sui.mui.GlanceBridge.sampleAgain();
-				return;
-			}
-			resampleAndPublish();
-		});
+		if (_follower != null) return;
+		var decl = sui.mui.GlanceBridge.declaration();
+		if (decl == null) return;
+		_follower = mui.surface.Follow.surface(decl, publish, publishFirst);
+		sui.mui.GlanceBridge.followedBy(_follower);
 	}
 
 	/** Stop following. For a host tearing the application down. **/
 	@:keep public static function unfollow():Void {
-		var e = _following;
-		_following = null;
-		if (e != null) e.dispose();
+		var f = _follower;
+		_follower = null;
+		sui.mui.GlanceBridge.followedBy(null);
+		if (f != null) f.dispose();
 	}
 
 	/**
@@ -134,12 +111,13 @@ class GlancePublish {
 		// what builds the action table here — publishing it would put this
 		// process's own state on the widget before the tap is even applied.
 		follow(false);
-		if (_following == null) return; // no Glance declaration: nothing to act on
+		var f = _follower;
+		if (f == null) return; // no Glance declaration: nothing to act on
 
-		// And the republish is no longer written here either: the closure writes
-		// a cell, the effect wakes on it, samples and publishes. One path for a
-		// tap and for anything else that moves the same cell.
-		sui.mui.GlanceBridge.invoke(id);
+		// The republish is not written here: the closure writes a cell, the
+		// effect wakes on it, samples and publishes. One path for a tap and for
+		// anything else that moves the same cell.
+		f.invoke(id);
 	}
 
 	/**
