@@ -62,10 +62,33 @@ class GlancePublish {
 		for the reason `GlanceBridge.attach` documents. The extension starts it
 		before invoking a tap, which is also what builds the action table there.
 	**/
-	@:keep public static function follow():Void {
+	@:keep public static function follow(publishFirst:Bool = true):Void {
 		if (_following != null) return;
 		if (!sui.mui.GlanceBridge.hasGlance()) return;
-		_following = new rui.Signal.Effect(() -> resampleAndPublish());
+
+		// The first run's job is to be subscribed and to build the action
+		// table; whether it should also PUBLISH depends on who is following.
+		//
+		// The application seeds the widget at launch, so it publishes. The
+		// **extension must not**: its first run happens as a tap arrives, and
+		// what it would publish is this process's own pre-tap state — which is
+		// not the application's. Publishing it overwrites the picture the
+		// application put there, and the widget jumps to a number that only
+		// ever existed inside the extension.
+		//
+		// Found by Benjamin tapping `+` and watching the count restart from
+		// somewhere else. I had reasoned this first publish was "harmless, just
+		// a wasted reload" — true only when every cell it reads is durable, and
+		// the shared example is not.
+		var seeding = !publishFirst;
+		_following = new rui.Signal.Effect(() -> {
+			if (seeding) {
+				seeding = false;
+				sui.mui.GlanceBridge.sampleAgain();
+				return;
+			}
+			resampleAndPublish();
+		});
 	}
 
 	/** Stop following. For a host tearing the application down. **/
@@ -107,7 +130,10 @@ class GlancePublish {
 		// Starting to follow IS the sample that builds the action table in this
 		// process, which is what makes the launcher's id resolve. It used to be
 		// an explicit `sampleAgain()` here; the effect's first run does it.
-		follow();
+		// `false`: do not publish on the way in. The first run samples, which is
+		// what builds the action table here — publishing it would put this
+		// process's own state on the widget before the tap is even applied.
+		follow(false);
 		if (_following == null) return; // no Glance declaration: nothing to act on
 
 		// And the republish is no longer written here either: the closure writes

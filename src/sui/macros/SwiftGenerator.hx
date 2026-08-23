@@ -1103,7 +1103,7 @@ class SwiftGenerator {
             // fields, so following there would evaluate the declaration against
             // null cells. This is the first moment it can be done, and doing it
             // is what makes the widget follow a write without anyone asking.
-            buf.add("        ::sui::mui::GlancePublish_obj::follow();\n");
+            buf.add("        ::sui::mui::GlancePublish_obj::follow(true);\n");
         }
         buf.add("    } catch (::Dynamic _e) {\n");
         buf.add('        fprintf(stderr, "[sui] viewnode_boot: Haxe exception during boot\\n");\n');
