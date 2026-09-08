@@ -6,9 +6,9 @@ Triggers an action when tapped.
 
 ```haxe
 // With a closure action (bridged automatically, no annotation needed)
-new Button("Increment", () -> count.value++)
+new Button("Increment", () -> count++)
 
-new Button("Say Hello", () -> myState.value = "Hello!")
+new Button("Say Hello", () -> myState = "Hello!")
 
 // A bare () -> Void function reference works too
 new Button("Login", MyApp.startLogin)
@@ -31,7 +31,7 @@ Button.withView(
         Image.systemImage("plus.circle"),
         new Text("Add Item")
     ]),
-    () -> items.value = items.value.concat([someValue])
+    () -> items = items.concat([someValue])
 )
 ```
 
@@ -143,7 +143,7 @@ The label is **static** — it does not reflect the bound value. To show the run
 
 ```haxe
 new HStack(null, 12, [
-  Text.bind('Every ${interval.value}'),
+  Text.bind('Every ${interval}'),
   new Stepper("", "interval", 1, 99),
 ])
 ```
@@ -290,7 +290,7 @@ class MyApp extends sui.App {
     override function body():View {
         return new VStack([
             new Text("Main window"),
-            Text.bind('Dark mode: ${darkMode.value}'),
+            Text.bind('Dark mode: $darkMode'),
         ]);
     }
 

@@ -42,7 +42,7 @@ class StateShowcaseApp extends App {
         // A rui effect over a sui state: this is what the shared core buys us.
         // It re-runs whenever `clicks` changes, whoever wrote it.
         new Effect(() -> {
-            clicks.get();
+            clicks;
             effectRuns++;
         });
 
@@ -56,7 +56,7 @@ class StateShowcaseApp extends App {
     }
 
     function note(entry:String):Void {
-        journal.set(entry);
+        journal = entry;
         trace("[journal] " + entry);
     }
 
@@ -77,14 +77,14 @@ class StateShowcaseApp extends App {
 
         // 1. An application write updates the value and re-runs rui effects.
         var before = effectRuns;
-        clicks.set(1);
-        check("app write updates value", clicks.get() == 1);
+        clicks = 1;
+        check("app write updates value", clicks == 1);
         check("app write re-runs the rui effect", effectRuns == before + 1);
 
         // 2. An unchanged write does not re-run effects (the shared core
         //    compares before notifying). sui still mirrors it to Swift.
         before = effectRuns;
-        clicks.set(1);
+        clicks = 1;
         check("unchanged write does not re-run the effect", effectRuns == before);
 
         // 3. A write coming *from* SwiftUI reaches Haxe. This is the path a
@@ -93,26 +93,26 @@ class StateShowcaseApp extends App {
         //    but nothing is pushed back to Swift.
         before = effectRuns;
         sui.state.State._applyFromSwift("clicks", "42");
-        check("SwiftUI write reaches Haxe", clicks.get() == 42);
+        check("SwiftUI write reaches Haxe", clicks == 42);
         check("SwiftUI write re-runs the rui effect", effectRuns == before + 1);
 
         // 4. Type coercion on the way in, per state type.
         sui.state.State._applyFromSwift("notify", "false");
-        check("Bool coerced from SwiftUI", notify.get() == false);
+        check("Bool coerced from SwiftUI", notify == false);
         sui.state.State._applyFromSwift("brightness", "0.25");
-        check("Float coerced from SwiftUI", Math.abs(brightness.get() - 0.25) < 1e-9);
+        check("Float coerced from SwiftUI", Math.abs(brightness - 0.25) < 1e-9);
         sui.state.State._applyFromSwift("userName", "Grace");
-        check("String coerced from SwiftUI", userName.get() == "Grace");
+        check("String coerced from SwiftUI", userName == "Grace");
 
         // 5. peek() reads without subscribing — used by the shared-memory
         //    bridge helpers, which must not register dependencies.
-        check("peek matches get", quantity.peek() == quantity.get());
+        check("peek matches get", quantity_.peek() == quantity);
 
         // Put the app back where the UI expects it.
-        clicks.set(0);
-        notify.set(true);
-        brightness.set(0.6);
-        userName.set("Ada");
+        clicks = 0;
+        notify = true;
+        brightness = 0.6;
+        userName = "Ada";
 
         trace(fails == 0 ? "[SELFTEST] ALL PASSED" : '[SELFTEST] $fails FAILED');
     }
@@ -128,34 +128,34 @@ class StateShowcaseApp extends App {
                 ]),
 
                 new Section("Miroir Haxe — relu depuis l'état partagé", [
-                    Text.bind('userName = ${userName.value}'),
-                    Text.bind('notify = ${notify.value}'),
-                    Text.bind('brightness = ${brightness.value}'),
-                    Text.bind('quantity = ${quantity.value}'),
+                    Text.bind('userName = $userName'),
+                    Text.bind('notify = $notify'),
+                    Text.bind('brightness = $brightness'),
+                    Text.bind('quantity = $quantity'),
                     new ProgressView("Luminosité", "brightness", 1.0)
                 ]),
 
                 new Section("Écritures applicatives — depuis Haxe", [
-                    Text.bind('clicks = ${clicks.value}')
+                    Text.bind('clicks = $clicks')
                         .font(FontStyle.Headline),
                     new HStack(null, 12, [
                         new Button("+1", () -> {
-                            clicks.value++;
-                            note("clicks = " + clicks.peek() + " (Haxe)");
+                            clicks++;
+                            note("clicks = " + clicks_.peek() + " (Haxe)");
                         }),
                         new Button("Même valeur", () -> {
-                            clicks.set(clicks.peek());
+                            clicks = clicks_.peek();
                             note("écriture inchangée (aucun effet rejoué)");
                         }),
                         new Button("Reset", () -> {
-                            clicks.set(0);
+                            clicks = 0;
                             note("clicks remis à 0 (Haxe)");
                         })
                     ])
                 ]),
 
                 new Section("Journal", [
-                    Text.bind('${journal.value}')
+                    Text.bind('$journal')
                         .foregroundColor(ColorValue.Secondary)
                 ])
             ]).navigationTitle("État partagé — sui sur rui")

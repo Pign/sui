@@ -112,7 +112,7 @@ Each parameter accepts a `Float` (static) or a `State<Float>` (reactive). Type-c
 new Image("photo").blur(5.0)
 
 // State-bound — animates when blurAmount changes
-new Image("photo").blur(blurAmount)
+new Image("photo").blur(blurAmount_)
 ```
 
 ## Navigation
@@ -177,9 +177,9 @@ new Toggle("Mon", "dowMon").toggleStyle(ToggleStyleValue.Pill)
 @:state var showInspector:Bool = false;
 
 new VStack([...])
-    .inspector(showInspector, new VStack([
+    .inspector(showInspector_, new VStack([
         new Text("Details"),
-        Text.bind('Selected: ${selectedItem.value}'),
+        Text.bind('Selected: ${selectedItem}'),
     ]))
     .inspectorColumnWidth(360, 480, 720)
 ```
@@ -206,10 +206,10 @@ new VStack([...])
 
 ```haxe
 new Text("Tap me")
-    .onTapGesture(() -> selected.value = "true")
+    .onTapGesture(() -> selected = "true")
 
 new Text("Hold me")
-    .onLongPressGesture(() -> showMenu.value = !showMenu.value)
+    .onLongPressGesture(() -> showMenu = !showMenu)
 
 // Key press handlers — same key-naming as keyboardShortcut
 new VStack([...])
@@ -302,13 +302,13 @@ new List([...])
 
 new VStack([...])
     .task(() -> {
-        data.value = "Loading...";
-        data.value = fetchData("");
+        data = "Loading...";
+        data = fetchData("");
     })
 
 // Repeating timer — replaces the old StateAction.IntervalLoop
 new Text("Clock")
-    .every(1.0, () -> tick.value++)
+    .every(1.0, () -> tick++)
 ```
 
 ## Accessibility
@@ -355,8 +355,8 @@ new GroupBox("Card", [new Text("Hi")])
     .animation(AnimationCurve.Spring, scale)
 
 // …then just mutate it. No animation wrapper on the action.
-new Button("Toggle", () -> expanded.value = !expanded.value)
-new Button("Grow", () -> scale.value = 1.5)
+new Button("Toggle", () -> expanded = !expanded)
+new Button("Grow", () -> scale = 1.5)
 ```
 
 See [Animations](animations.md) for the full picture. The old `.animated(curve)` wrapper

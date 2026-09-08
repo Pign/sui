@@ -34,9 +34,9 @@ class DescribeCheck extends App {
 		return new VStack([
 			// The interpolation is a LiveProps thunk: the describer must
 			// resolve it, or the wire carries the neutral "".
-			new Text('count: ${count.get()}'),
+			new Text('count: $count'),
 			new Button("Go", () -> taps.push("go")),
-			new Toggle("Lamp", (lit : ToggleBinding)),
+			new Toggle("Lamp", (lit_ : ToggleBinding)),
 		], 8);
 	}
 
@@ -70,7 +70,7 @@ class DescribeCheck extends App {
 			case PCallbackBool(fn): fn(true);
 			case _:
 		}
-		check("a described binding writes back to the state", app.lit.get() == true);
+		check("a described binding writes back to the state", app.lit == true);
 
 		// Re-describe: the sample must follow the cell.
 		var again = mui.surface.Describe.describe(app.body());
@@ -88,9 +88,9 @@ class DescribeCheck extends App {
 		table.invoke(far.children[1].actions.get("onClick"));
 		check("a remote tap runs the button's closure", taps.length == 1 && taps[0] == "go");
 
-		app.lit.set(false);
+		app.lit = false;
 		table.invoke(far.children[2].actions.get("onToggle"), "true");
-		check("a remote toggle edit lands in the @:state cell", app.lit.get() == true);
+		check("a remote toggle edit lands in the @:state cell", app.lit == true);
 
 		Sys.println(fails == 0 ? "\nall good" : '\n$fails failed');
 		Sys.exit(fails == 0 ? 0 : 1);

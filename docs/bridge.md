@@ -18,7 +18,7 @@ Pass any Haxe function or closure to a Button. It runs via the bridge automatica
 
 ```haxe
 new Button("Say Hello", () -> {
-    myState.value = "Hello from Haxe! Time: " + Date.now().toString();
+    myState = "Hello from Haxe! Time: " + Date.now().toString();
 })
 ```
 
@@ -30,7 +30,7 @@ When you update a `@:state` variable from Haxe, the update flows back to SwiftUI
 
 ```mermaid
 flowchart TD
-    A["Haxe: state.value = newValue"] --> B["C++ bridge: notify Swift callback"]
+    A["Haxe: state = newValue"] --> B["C++ bridge: notify Swift callback"]
     B --> C["Swift: @State property update"]
     C --> D["SwiftUI: automatic re-render"]
 ```
@@ -44,9 +44,9 @@ No annotation needed. Any `@:state` variable participates in this flow.
 ```haxe
 new VStack([...])
     .task(() -> {
-        status.value = "Loading...";
+        status = "Loading...";
         var http = new haxe.Http("https://example.com");
-        http.onData = (d) -> data.value = d;
+        http.onData = (d) -> data = d;
         http.request(false);
     })
     .onDisappear(() -> trace("View disappeared"))
@@ -63,15 +63,15 @@ is fine:
 
 ```haxe
 // Synchronous call + assign
-new Button("Greet", () -> result.value = greet("World"))
+new Button("Greet", () -> result = greet("World"))
 
 // Several arguments
-new Button("Login", () -> result.value = doLogin("https://api.example.com", "user@email.com", "pass123"))
+new Button("Login", () -> result = doLogin("https://api.example.com", "user@email.com", "pass123"))
 
 // Show a loading placeholder, then the result — SwiftUI sees both writes
 new Button("Fetch Data", () -> {
-    result.value = "Loading...";
-    result.value = fetchUrl("https://example.com");
+    result = "Loading...";
+    result = fetchUrl("https://example.com");
 })
 
 // Fire-and-forget (no return value)
@@ -148,7 +148,7 @@ Scalar `@:state` / AppState properties carry a `didSet` that replicates writes c
 from SwiftUI bindings (`TextField`, `Toggle`, `Slider`, `Picker`, …) back into the Haxe
 mirror via `HaxeBridgeC.syncState` → `State._applyFromSwift`.
 
-The practical consequence: inside an action closure, `someState.value` is **always
+The practical consequence: inside an action closure, `someState` is **always
 fresh**, even for a value the user just typed into a `TextField` and hasn't submitted
 through any other path.
 
@@ -157,9 +157,9 @@ new TextField("New item...", "newItemText"),
 new Button("Add", () -> {
     // newItemText was written back by the TextField binding —
     // .value is up to date here
-    if (newItemText.value != "") {
-        todos.value = todos.value.concat([new TodoItem(newItemText.value)]);
-        newItemText.value = "";
+    if (newItemText != "") {
+        todos = todos.concat([new TodoItem(newItemText)]);
+        newItemText = "";
     }
 })
 ```
@@ -170,7 +170,7 @@ new Button("Add", () -> {
 flowchart LR
     subgraph Transparent["Transparent (automatic)"]
         B1["Button closure"] --> AR["Action registry"] --> CPP1["C++/Haxe"]
-        S1["state.value ="] --> CB["C++ callback"] --> SW1["Swift @State"]
+        S1["state ="] --> CB["C++ callback"] --> SW1["Swift @State"]
         L1["onAppear/task"] --> AR
     end
 
@@ -211,13 +211,13 @@ class BridgeApp extends App {
         return new VStack(null, 20, [
             new Text("Haxe <-> Swift Bridge")
                 .font(FontStyle.LargeTitle),
-            Text.bind(result.value)
+            Text.bind(result)
                 .font(FontStyle.Title2)
                 .padding(),
 
             // Action closures call the Haxe functions directly
-            new Button("Greet from Haxe", () -> result.value = greet("World")),
-            new Button("Fibonacci(20)", () -> result.value = 'fib(20) = ${fibonacci(20)}'),
+            new Button("Greet from Haxe", () -> result = greet("World")),
+            new Button("Fibonacci(20)", () -> result = 'fib(20) = ${fibonacci(20)}'),
         ]);
     }
 }
@@ -230,7 +230,7 @@ When a bridge function needs to update multiple `@:state` variables, use `State.
 ```haxe
 new Button("Login", () -> {
     State.setByName("status", "Logging in...");
-    var result = doLogin(email.value, password.value);
+    var result = doLogin(email, password);
     State.setByName("userName", result.name);
     State.setByName("mailboxCount", Std.string(result.mailboxes));
     State.setByName("isLoggedIn", "true");
@@ -253,7 +253,7 @@ Arrays and objects stay in Haxe memory &mdash; Swift reads them directly via sha
 
 // Update in a closure — Swift sees the change immediately
 new Button("Fetch", () -> {
-    emails.value = fetchEmails();
+    emails = fetchEmails();
 })
 ```
 
@@ -268,7 +268,7 @@ For arrays of objects, Swift can query individual fields without copying the ent
 
 // Populate with structured data
 new Button("Load", () -> {
-    users.value = [
+    users = [
         {name: "Alice", age: 30, active: true},
         {name: "Bob", age: 25, active: false},
     ];
@@ -300,7 +300,7 @@ HaxeBridgeC.objectBoolField("users", at: index, field: "active") // → Bool
 - To run Haxe logic from an action, just call the function in the closure &mdash; no `@:expose` needed
 - `@:expose` is only needed for named function exports callable from hand-written Swift; they must be `public static`
 - `@:expose` functions can accept and return basic types (`String`, `Int`, `Float`, `Bool`)
-- SwiftUI binding writes mirror back into Haxe via `didSet`, so `state.value` is always fresh in a closure
+- SwiftUI binding writes mirror back into Haxe via `didSet`, so `state` is always fresh in a closure
 - Arrays and objects use shared memory &mdash; no serialization overhead
 - For a loading placeholder, write the placeholder then the result in the same closure
 - Use `State.setByName()` to update multiple `@:state` variables from a single closure

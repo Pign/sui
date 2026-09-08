@@ -30,7 +30,7 @@ class FormApp extends App {
                     new TextField("Username", "username"),
                     new SecureField("Password", "password"),
                     new Stepper("Quantity", "quantity", 1, 99),
-                    Text.bind('Selected: ${quantity.value} items')
+                    Text.bind('Selected: $quantity items')
                         .foregroundColor(ColorValue.Secondary)
                 ]),
                 new Section("Preferences", [

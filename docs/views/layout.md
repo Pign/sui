@@ -51,8 +51,8 @@ new HStack([
 
 ```haxe
 new HStack(null, 20, [
-    new Button("-", () -> count.value--),
-    new Button("+", () -> count.value++)
+    new Button("-", () -> count--),
+    new Button("+", () -> count++)
 ])
 ```
 
@@ -238,7 +238,7 @@ new ConditionalView(currentScreen, "login",
 Add `.transition()` to child views for enter/exit animations, and put `.animation(curve, showDetail)` on the enclosing container so the toggle animates. The button itself is a plain closure:
 
 ```haxe
-new Button("Toggle", () -> showDetail.value = !showDetail.value)
+new Button("Toggle", () -> showDetail = !showDetail)
 
 new VStack([
     new ConditionalView(showDetail,

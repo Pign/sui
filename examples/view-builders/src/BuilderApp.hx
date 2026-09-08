@@ -22,9 +22,9 @@ class BuilderApp extends App {
     /** Instance method returning a View — inlined by the macro. **/
     function buildControls():View {
         return new HStack(null, 20, [
-            new Button("-", () -> count.value--),
-            new Button("+", () -> count.value++),
-            new Button("Reset", () -> count.value = 0)
+            new Button("-", () -> count--),
+            new Button("+", () -> count++),
+            new Button("Reset", () -> count = 0)
         ]);
     }
 
@@ -37,7 +37,7 @@ class BuilderApp extends App {
             Shared.infoRow("Count", "see below"),
 
             // State display
-            Text.bind('Count: ${count.value}')
+            Text.bind('Count: $count')
                 .font(FontStyle.Title),
 
             // Instance method inlined

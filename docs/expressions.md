@@ -9,7 +9,7 @@ This page documents *which* Haxe constructs the walker accepts. Anything outside
 | Tier | Status | What's in it |
 |---|---|---|
 | **T1 — essentials** | Fully supported | Literals, state refs, subscripts, concat, ternaries, comparisons, locals from `ForEach` lambdas |
-| **T2 — convenience** | Supported on a whitelist | `Std.string(x)` (auto-inserted by Haxe single-quote interpolation), property getters (`state.value` after typing) |
+| **T2 — convenience** | Supported on a whitelist | `Std.string(x)` (auto-inserted by Haxe single-quote interpolation), property getters (`state` after typing) |
 | **T3 — out of scope** | Not supported, raises a warning | Regex, reflection, runtime type checks, exceptions, user-defined enum pattern matching, arbitrary function calls |
 
 ## T1 — fully supported
@@ -18,7 +18,7 @@ This page documents *which* Haxe constructs the walker accepts. Anything outside
 
 ```haxe
 Text.bind("Hello")              // → Text("Hello")
-Text.bind('Count: ${42}')       // → Text("Count: \(42)")
+Text.bind('Count: $42')       // → Text("Count: \(42)")
 .opacity(0.15)                  // → .opacity(0.15)
 .foregroundHex("#ff3b30ff")     // → .foregroundStyle(Color(suiHex: "#ff3b30ff") ?? Color.primary)
 ```
@@ -26,9 +26,9 @@ Text.bind('Count: ${42}')       // → Text("Count: \(42)")
 ### State refs
 
 ```haxe
-Text.bind(userName.value)       // bridge mode: → Text("\(appState.userName)")
+Text.bind(userName)       // bridge mode: → Text("\(appState.userName)")
                                 // standalone:   → Text("\(userName)")
-.foregroundHex(tintHex.value)   // typed State<String> arg, no string literal
+.foregroundHex(tintHex)   // typed State<String> arg, no string literal
 ```
 
 `qualifyStateName` adds the `appState.` prefix when the app declares any `@:expose` static (bridge mode); for standalone `@State` apps and component-local fields it stays bare.
@@ -40,40 +40,40 @@ Inside a `ForEach.byIndex(arr, i -> body)` lambda, both the iterated array and a
 ```haxe
 ForEach.byIndex(todos, i ->
     new HStack([
-        Text.bind(todos.value[i].title),
+        Text.bind(todos[i].title),
         Image.systemImage("circle.fill")
-            .foregroundHex(calendarColors.value[i]),
+            .foregroundHex(calendarColors[i]),
     ])
 )
 ```
 
-The walker recognises `state.value[localFromLambda]` as a parallel-array access and emits `appState.<name>[i]`.
+The walker recognises `state[localFromLambda]` as a parallel-array access and emits `appState.<name>[i]`.
 
 ### String composition
 
 Haxe single-quote interpolation desugars to `TBinop(OpAdd, …)` chains that the walker flattens into a single Swift literal:
 
 ```haxe
-Text.bind('Page ${currentPage.value} / ${totalPages.value}')
+Text.bind('Page ${currentPage} / ${totalPages}')
 // → Text("Page \(appState.currentPage) / \(appState.totalPages)")
 
-Text.bind('${editorStartHour.value}h${editorStartMinute.value}')
+Text.bind('${editorStartHour}h${editorStartMinute}')
 // → Text("\(appState.editorStartHour)h\(appState.editorStartMinute)")
 ```
 
 Direct concatenation with `+` works the same way:
 
 ```haxe
-Text.bind("Prefix: " + name.value)
+Text.bind("Prefix: " + name)
 ```
 
 ### Ternaries
 
 ```haxe
-Text.bind(isVisible.value ? "shown" : "hidden")
+Text.bind(isVisible ? "shown" : "hidden")
 // → Text("\((appState.isVisible ? "shown" : "hidden"))")
 
-.foregroundHex(weekIsToday.value[i] ? "#ffffff" : "")
+.foregroundHex(weekIsToday[i] ? "#ffffff" : "")
 // inside a ForEach.byIndex — walker handles the per-row ternary
 ```
 
@@ -82,8 +82,8 @@ The Haxe typer rewrites ternaries in argument position to `{ var _hx; if (cond) 
 ### Comparisons & boolean logic
 
 ```haxe
-Text.bind(count.value > 0 ? "positive" : "zero or less")
-.opacity(isHidden.value && !isPinned.value ? 0.0 : 1.0)
+Text.bind(count > 0 ? "positive" : "zero or less")
+.opacity(isHidden && !isPinned ? 0.0 : 1.0)
 ```
 
 Supported operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, `+`, `-`, `*`, `/`, `%`.
@@ -100,7 +100,7 @@ new ForEach(colors, color ->
 
 // Index iteration
 ForEach.byIndex(todos, i ->
-    Text.bind(todos.value[i])           // i is Int
+    Text.bind(todos[i])           // i is Int
 )
 ```
 
@@ -112,10 +112,10 @@ These work, but they're either auto-inserted by Haxe or recognised against a sma
 
 ### `Std.string` wrap
 
-Single-quote interpolation `'${x}'` desugars to `Std.string(x) + …`. The walker peels the wrap transparently:
+Single-quote interpolation `'$x'` desugars to `Std.string(x) + …`. The walker peels the wrap transparently:
 
 ```haxe
-Text.bind('${count.value}')      // count is Int — Haxe inserts Std.string
+Text.bind('${count}')      // count is Int — Haxe inserts Std.string
 // → Text("\(appState.count)")
 ```
 
@@ -123,14 +123,14 @@ You almost never write `Std.string(…)` yourself; if you do, it works.
 
 ### Property getters
 
-`state.value` on a `State<T>` is a Haxe property with a getter. After typing it becomes a `TCall(get_value, [])`. The walker recognises this shape and emits `appState.<state-name>` directly.
+`state` on a `State<T>` is a Haxe property with a getter. After typing it becomes a `TCall(get_value, [])`. The walker recognises this shape and emits `appState.<state-name>` directly.
 
 ## T3 — not supported
 
 The walker raises a warning for any construct outside T1/T2. Typical culprits:
 
 ```haxe
-Text.bind(name.value.toLowerCase())           // method call on String — not whitelisted
+Text.bind(name.toLowerCase())           // method call on String — not whitelisted
 Text.bind(Reflect.field(obj, "x"))            // reflection
 Text.bind(myEnum.match(Some(_)))              // pattern match
 Text.bind(try riskyCall() catch (e:Dynamic) "") // exceptions
@@ -156,8 +156,8 @@ For complex per-row computations inside `ForEach`, follow the same pattern with 
 @:state var monthDayNumberHex:Array<String>;  // pre-computed per cell
 
 ForEach.byIndex(monthIndices, i ->
-    Text.bind(monthDayNumbers.value[i])
-        .foregroundHex(monthDayNumberHex.value[i])  // typed access, no logic in modifier
+    Text.bind(monthDayNumbers[i])
+        .foregroundHex(monthDayNumberHex[i])  // typed access, no logic in modifier
 )
 ```
 

@@ -216,19 +216,17 @@ class StateMacro {
                 params: [TPType(origType)]
             });
 
-            newFields.push({
-                name: field.name,
-                access: field.access,
-                kind: FVar(stateType, null),
-                pos: field.pos,
-                meta: field.meta,
-                doc: field.doc,
-            });
+            // The field becomes a property over a cell named `count_` -- see
+            // rui.macros.StateProperty. The cell keeps the field's own name for
+            // Swift: that is the name LiveProps and ReadScope know it by.
+            var cell = rui.macros.StateProperty.cellName(fieldName);
+            for (f in rui.macros.StateProperty.split(field, origType, stateType))
+                newFields.push(f);
 
             var nameExpr = macro $v{fieldName};
-            stateInits.push(macro $i{fieldName} = new sui.state.State($defaultExpr, $nameExpr));
+            stateInits.push(macro $i{cell} = new sui.state.State($defaultExpr, $nameExpr));
             if (durable != null)
-                stateInits.push(rui.macros.DurableState.bindCall(durable, macro this, fieldName, field.pos));
+                stateInits.push(rui.macros.DurableState.bindCall(durable, macro this, cell, field.pos));
         }
 
         // Walk every method body, replacing bridged-modifier calls

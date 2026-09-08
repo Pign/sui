@@ -45,21 +45,21 @@ class TodoApp extends App {
                     new Button("Add", () -> {
                         // newItemText is fresh here: the TextField's
                         // Swift binding writes back to the Haxe mirror.
-                        if (newItemText.value != "") {
-                            todos.value = todos.value.concat([new TodoItem(newItemText.value, false)]);
-                            newItemText.value = "";
+                        if (newItemText != "") {
+                            todos = todos.concat([new TodoItem(newItemText, false)]);
+                            newItemText = "";
                         }
                     })
                 ]).padding(),
                 new List([
                     ForEach.byIndex(todos, i ->
                         new HStack([
-                            Text.bind(todos.value[i].title)
+                            Text.bind(todos[i].title)
                                 .font(FontStyle.Body),
                             new Spacer(),
                             new Button("Done", () -> {
-                                todos.value[i].completed = !todos.value[i].completed;
-                                todos.value = todos.value; // re-assign to notify SwiftUI
+                                todos[i].completed = !todos[i].completed;
+                                todos = todos; // re-assign to notify SwiftUI
                             })
                         ])
                     )
@@ -98,14 +98,14 @@ todos = new State<Array<TodoItem>>([], "todos");
 new TextField("New item...", "newItemText")
     .textFieldStyle(TextFieldStyleValue.RoundedBorder),
 new Button("Add", () -> {
-    if (newItemText.value != "") {
-        todos.value = todos.value.concat([new TodoItem(newItemText.value, false)]);
-        newItemText.value = "";
+    if (newItemText != "") {
+        todos = todos.concat([new TodoItem(newItemText, false)]);
+        newItemText = "";
     }
 })
 ```
 
-The TextField binds to `newItemText`. The button's closure reads `newItemText.value`
+The TextField binds to `newItemText`. The button's closure reads `newItemText`
 &mdash; which is always current, because the TextField's SwiftUI binding writes back into
 the Haxe mirror via `didSet` (see [The Bridge](../bridge.md#write-back-swift--haxe)).
 It appends a new `TodoItem` and clears the field, all in plain Haxe.
@@ -115,20 +115,20 @@ It appends a new `TodoItem` and clears the field, all in plain Haxe.
 ```haxe
 ForEach.byIndex(todos, i ->
     new HStack([
-        Text.bind(todos.value[i].title),
+        Text.bind(todos[i].title),
         // ...
     ])
 )
 ```
 
-`ForEach.byIndex` iterates the `todos` array by index. The lambda receives `i:Int`, so `todos.value[i].title` typechecks in Haxe and the macro rewrites it to `appState.todos[i].title` in the emitted Swift.
+`ForEach.byIndex` iterates the `todos` array by index. The lambda receives `i:Int`, so `todos[i].title` typechecks in Haxe and the macro rewrites it to `appState.todos[i].title` in the emitted Swift.
 
 ### Row Action Closures
 
 ```haxe
 new Button("Done", () -> {
-    todos.value[i].completed = !todos.value[i].completed;
-    todos.value = todos.value; // re-assign to notify SwiftUI
+    todos[i].completed = !todos[i].completed;
+    todos = todos; // re-assign to notify SwiftUI
 })
 ```
 

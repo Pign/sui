@@ -7,16 +7,16 @@ sui provides a reactive state system that maps to SwiftUI's state management.
 | Concept | Haxe | SwiftUI | Purpose |
 |---------|------|---------|---------|
 | `@:state` | `@:state var count:Int = 0` | `@State var count = 0` | View-local mutable state |
-| Action | `() -> count.value++` | `count += 1` | A `() -> Void` closure that mutates state |
+| Action | `() -> count++` | `count += 1` | A `() -> Void` closure that mutates state |
 | `Binding` | `Binding.fromState(state)` | `@Binding var value` | Two-way reference to parent state |
 | `Observable` | `extends Observable` | `@Observable class` | Shared data models |
-| `Text.bind` | `Text.bind(count.value)` | `Text("\(count)")` | Display state values |
+| `Text.bind` | `Text.bind(count)` | `Text("\(count)")` | Display state values |
 
 ## How It Works
 
 1. Declare `@:state` fields in your App class
 2. The framework generates matching `@State var` properties in Swift
-3. Mutations happen in action closures via `state.value = x` (run in Haxe, dispatched through the bridge)
+3. Mutations happen in action closures via `state = x` (run in Haxe, dispatched through the bridge)
 4. SwiftUI automatically re-renders when state changes
 
 ## Quick Example
@@ -33,27 +33,27 @@ class CounterApp extends App {
 
     override function body():View {
         return new VStack([
-            Text.bind('Count: ${count.value}')
+            Text.bind('Count: $count')
                 .font(FontStyle.Title),
-            new Button("+1", () -> count.value++),
-            new Button("Reset", () -> count.value = 0)
+            new Button("+1", () -> count++),
+            new Button("Reset", () -> count = 0)
         ]);
     }
 }
 ```
 
-The `@:state` metadata automatically creates a `State<Int>` field named `"count"`. You can read and write it with `count.value`, and the change flows to SwiftUI.
+The `@:state` metadata automatically creates a `State<Int>` field named `"count"`. You can read and write it with `count`, and the change flows to SwiftUI.
 
 ### Explicit State (alternative)
 
 You can also use `State<T>` directly for more control:
 
 ```haxe
-var count:State<Int>;
+var count_:State<Int>;
 
 public function new() {
     super();
-    count = new State<Int>(0, "count");
+    count_ = new State<Int>(0, "count");
 }
 ```
 

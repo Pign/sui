@@ -43,14 +43,14 @@ class FetchApp extends App {
         return new NavigationStack(new VStack(null, 16, [
             new Text("Async Haxe Bridge").font(FontStyle.LargeTitle),
             new ScrollView([
-                Text.bind(result.value)
+                Text.bind(result)
                     .font(FontStyle.Body)
                     .padding()
             ]),
             new HStack(null, 12, [
                 new Button("Fetch example.com", () -> {
-                    result.value = "Loading...";
-                    result.value = fetchUrl("https://example.com");
+                    result = "Loading...";
+                    result = fetchUrl("https://example.com");
                 }),
             ]).padding()
         ]).navigationTitle("Async Fetch"));
@@ -78,8 +78,8 @@ This is an ordinary Haxe function &mdash; no annotation needed to call it from a
 
 ```haxe
 new Button("Fetch example.com", () -> {
-    result.value = "Loading...";
-    result.value = fetchUrl("https://example.com");
+    result = "Loading...";
+    result = fetchUrl("https://example.com");
 })
 ```
 

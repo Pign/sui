@@ -37,30 +37,30 @@ an array of basic types, or a class extending Observable.
 
 | Syntax | Description |
 |--------|-------------|
-| `.value` | Read the current value (Haxe side) |
-| `.value = newValue` | Update the value and notify SwiftUI |
+| `count` | Read the current value (Haxe side) — the field is a property over the cell `count_` |
+| `count = newValue` | Update the value and notify SwiftUI |
 
 The variable name is used directly in action closures, `Text.bind` expressions, and binding references.
 
 ## Actions
 
 An action is just a Haxe closure &mdash; `typedef StateAction = () -> Void`. You mutate
-state by assigning to `.value`; the change is reflected in SwiftUI automatically.
+state by assigning to the field; the change is reflected in SwiftUI automatically.
 
 ```haxe
-new Button("+", () -> count.value++)
-new Button("-", () -> count.value--)
-new Button("Reset", () -> count.value = 0)
-new Button("Toggle", () -> isOn.value = !isOn.value)
+new Button("+", () -> count++)
+new Button("-", () -> count--)
+new Button("Reset", () -> count = 0)
+new Button("Toggle", () -> isOn = !isOn)
 ```
 
 A closure can run any Haxe logic and touch several state variables:
 
 ```haxe
 new Button("Reset all", () -> {
-    scale.value = 1;
-    rotation.value = 0;
-    offset.value = 0;
+    scale = 1;
+    rotation = 0;
+    offset = 0;
 })
 ```
 
@@ -73,7 +73,7 @@ new Button("Login", MyApp.startLogin)
 Actions run on a detached thread on the Haxe/C++ side. Each call site is registered
 under a stable id at build time and dispatched from Swift &mdash; see
 [The Bridge](../bridge.md) for the mechanics. Because every `@:state` property
-mirrors SwiftUI's bindings back into Haxe via `didSet`, reading `someState.value`
+mirrors SwiftUI's bindings back into Haxe via `didSet`, reading `someState`
 inside an action always returns the current value, even one the user just typed into a
 `TextField`.
 
@@ -84,12 +84,12 @@ its result. The closure already runs off the main thread, so a blocking call is 
 
 ```haxe
 // Synchronous
-new Button("Greet", () -> result.value = greet("World"))
+new Button("Greet", () -> result = greet("World"))
 
 // With a loading placeholder — both assignments are seen by SwiftUI
 new Button("Fetch", () -> {
-    result.value = "Loading...";
-    result.value = fetchUrl("https://example.com");
+    result = "Loading...";
+    result = fetchUrl("https://example.com");
 })
 
 // Fire-and-forget (no return value)
@@ -98,7 +98,7 @@ new Button("Refresh", () -> refresh())
 
 > [!TIP]
 > Periodic work that used to be expressed as an interval action now lives on the view:
-> `view.every(2.0, () -> tick.value++)` ticks the closure every two seconds.
+> `view.every(2.0, () -> tick++)` ticks the closure every two seconds.
 
 ### Migrating from the `StateAction` enum
 
@@ -108,15 +108,15 @@ removed. Every action is now a plain `() -> Void` closure.
 
 | Old API | New closure |
 |---------|-------------|
-| `count.inc(1)` / `StateAction.Increment(count, 1)` | `() -> count.value++` |
-| `count.dec(1)` / `StateAction.Decrement(count, 1)` | `() -> count.value--` |
-| `x.setTo(v)` / `StateAction.SetValue(x, v)` | `() -> x.value = v` |
-| `b.tog()` / `StateAction.Toggle(b)` | `() -> b.value = !b.value` |
-| `items.appendAction(v)` | `() -> items.value = items.value.concat([v])` |
+| `count.inc(1)` / `StateAction.Increment(count, 1)` | `() -> count++` |
+| `count.dec(1)` / `StateAction.Decrement(count, 1)` | `() -> count--` |
+| `x.setTo(v)` / `StateAction.SetValue(x, v)` | `() -> x = v` |
+| `b.tog()` / `StateAction.Toggle(b)` | `() -> b = !b` |
+| `items.appendAction(v)` | `() -> items = items.concat([v])` |
 | `StateAction.RunExpr(expr)` | `() -> expr` |
 | `StateAction.CustomSwift("…")` | rewrite the logic in pure Haxe inside the closure |
-| `StateAction.BridgeCall(s, "fn", a)` | `() -> s.value = fn(a)` |
-| `StateAction.BridgeCallLoading(s, "…", "fn", a)` | `() -> { s.value = "…"; s.value = fn(a); }` |
+| `StateAction.BridgeCall(s, "fn", a)` | `() -> s = fn(a)` |
+| `StateAction.BridgeCallLoading(s, "…", "fn", a)` | `() -> { s = "…"; s = fn(a); }` |
 | `StateAction.BridgeCallVoid("fn", a)` | `() -> fn(a)` |
 | `StateAction.Animated(action, curve)` | closure + `.animation(curve, state)` on the view |
 | `StateAction.IntervalLoop(secs, action)` | `view.every(secs, () -> …)` |
@@ -133,13 +133,13 @@ On the dynamic renderer — the default — the expression is simply **run**, ea
 [decommissioned static path](../render-paths.md) instead walked the typed AST and emitted Swift string interpolation, which is what the generated Swift below shows:
 
 ```haxe
-Text.bind('Count: ${count.value}')           // → Text("Count: \(count)")
-Text.bind(name.value)                         // → Text("\(name)")
-Text.bind('${rating} / 5')                    // → Text("\(rating) / 5")  (component @:swiftBinding field — no .value)
-Text.bind(todos.value[i].title)               // → Text("\(todos[i].title)")  (inside ForEach.byIndex)
+Text.bind('Count: $count')           // → Text("Count: \(count)")
+Text.bind(name)                         // → Text("\(name)")
+Text.bind('$rating / 5')                    // → Text("\(rating) / 5")  (component @:swiftBinding field)
+Text.bind(todos[i].title)               // → Text("\(todos[i].title)")  (inside ForEach.byIndex)
 ```
 
-Use single-quoted Haxe strings for `${...}` interpolation. For `State<T>` references, read `.value`; for component `@:swiftBinding` fields, reference the field bare.
+Use single-quoted Haxe strings for `${...}` interpolation. A `@:state` field and a component `@:swiftBinding` field are both referenced bare.
 
 ### Legacy: Text.withState
 
@@ -159,16 +159,16 @@ class CounterApp extends App {
 
     override function body():View {
         return new VStack([
-            Text.bind('Count: ${count.value}')
+            Text.bind('Count: $count')
                 .font(FontStyle.Title)
                 .padding(),
             new HStack(null, 20, [
-                new Button("-", () -> count.value--),
-                new Button("+", () -> count.value++)
+                new Button("-", () -> count--),
+                new Button("+", () -> count++)
             ])
         ]);
     }
 }
 ```
 
-Each button's closure mutates `count.value`; SwiftUI re-renders the `Text.bind` automatically.
+Each button's closure mutates `count`; SwiftUI re-renders the `Text.bind` automatically.

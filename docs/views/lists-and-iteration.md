@@ -39,14 +39,14 @@ The lambda receives the **element** (`color: String`). References to other paral
 ```haxe
 ForEach.byIndex(todos, i ->
     new HStack([
-        Text.bind(todos.value[i].title),
+        Text.bind(todos[i].title),
         new Spacer(),
-        new Button("Delete", () -> todos.value = todos.value.filter(t -> t != todos.value[i]))
+        new Button("Delete", () -> todos = todos.filter(t -> t != todos[i]))
     ])
 )
 ```
 
-The lambda receives the **index** (`i: Int`). Subscripts into the iterated array (`todos.value[i].title`) and any parallel arrays (`colors.value[i]`) flow through the typed walker into `appState.todos[i]` / `appState.colors[i]` — no stringly templates anywhere. Generates `ForEach(0..<appState.todos.count, id: \.self) { i in … }`.
+The lambda receives the **index** (`i: Int`). Subscripts into the iterated array (`todos[i].title`) and any parallel arrays (`colors[i]`) flow through the typed walker into `appState.todos[i]` / `appState.colors[i]` — no stringly templates anywhere. Generates `ForEach(0..<appState.todos.count, id: \.self) { i in … }`.
 
 The `Delete` action is a closure that references the iteration index `i`. Inside a
 `ForEach` row, the macro lifts the closure into an indexed builder and Swift dispatches
@@ -76,7 +76,7 @@ Kept for backwards compatibility. Pass the iteration variable name as a `String`
 ```haxe
 new List([
     ForEach.byIndex(items, i ->
-        Text.bind(items.value[i])
+        Text.bind(items[i])
     )
 ])
 ```

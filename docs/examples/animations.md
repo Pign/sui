@@ -29,30 +29,30 @@ class AnimApp extends App {
                     .font(FontStyle.Title)
                     .padding()
             ])
-            .scaleEffect(scale)
-            .rotationEffect(rotation)
-            .offset(offset, 0)
-            .animation(AnimationCurve.Spring, scale)
-            .animation(AnimationCurve.Spring, rotation)
-            .animation(AnimationCurve.EaseInOut, offset)
+            .scaleEffect(scale_)
+            .rotationEffect(rotation_)
+            .offset(offset_, 0)
+            .animation(AnimationCurve.Spring, scale_)
+            .animation(AnimationCurve.Spring, rotation_)
+            .animation(AnimationCurve.EaseInOut, offset_)
             .padding(),
 
             // Plain closures — they animate because of the .animation
             // modifiers declared on the card above.
             new HStack(null, 15, [
-                new Button("Bounce", () -> scale.value = scale.value == 1.0 ? 1.3 : 1.0),
-                new Button("Spin", () -> rotation.value += 90),
-                new Button("Slide", () -> offset.value = offset.value == 0 ? 50 : 0),
+                new Button("Bounce", () -> scale = scale == 1.0 ? 1.3 : 1.0),
+                new Button("Spin", () -> rotation += 90),
+                new Button("Slide", () -> offset = offset == 0 ? 50 : 0),
                 new Button("Reset", () -> {
-                    scale.value = 1;
-                    rotation.value = 0;
-                    offset.value = 0;
+                    scale = 1;
+                    rotation = 0;
+                    offset = 0;
                 })
             ]),
 
-            new Button("Toggle Detail", () -> showDetail.value = !showDetail.value),
+            new Button("Toggle Detail", () -> showDetail = !showDetail),
 
-            new ConditionalView(showDetail,
+            new ConditionalView(showDetail_,
                 new VStack([
                     new Text("Detail View").font(FontStyle.Headline),
                     new Text("This appeared with a slide transition")
@@ -69,7 +69,7 @@ class AnimApp extends App {
                     .transition("opacity")
             )
         ]).padding()
-            .animation(AnimationCurve.Spring, showDetail);
+            .animation(AnimationCurve.Spring, showDetail_);
     }
 }
 ```
@@ -79,10 +79,10 @@ class AnimApp extends App {
 ### State-Bound Visual Effects
 
 ```haxe
-.scaleEffect(scale)
-.rotationEffect(rotation)
-.animation(AnimationCurve.Spring, scale)
-.animation(AnimationCurve.Spring, rotation)
+.scaleEffect(scale_)
+.rotationEffect(rotation_)
+.animation(AnimationCurve.Spring, scale_)
+.animation(AnimationCurve.Spring, rotation_)
 ```
 
 Pass a `State<Float>` reference to visual effect modifiers for dynamic binding. Type-checked at compile time. The `.animation()` modifier takes an `AnimationCurve` enum value that tells SwiftUI which curve to use when that `State<Float>` reference changes &mdash; no matter where the change comes from.
@@ -90,17 +90,17 @@ Pass a `State<Float>` reference to visual effect modifiers for dynamic binding. 
 ### Mutations Are Plain Closures
 
 ```haxe
-new Button("Spin", () -> rotation.value += 90)
+new Button("Spin", () -> rotation += 90)
 ```
 
-The action just sets `rotation.value`. Because the card declares
+The action just sets `rotation`. Because the card declares
 `.animation(AnimationCurve.Spring, rotation)`, SwiftUI interpolates the rotation
 smoothly. Animation is a property of the *view*, not of the mutation.
 
 ### Transitions
 
 ```haxe
-new ConditionalView(showDetail,
+new ConditionalView(showDetail_,
     detailView.transition("slide"),
     placeholder.transition("opacity")
 )
@@ -112,7 +112,7 @@ container &mdash; here the outer `VStack` carries `.animation(AnimationCurve.Spr
 
 ### How They Work Together
 
-1. **Action closures** &mdash; mutate state (`rotation.value += 90`)
+1. **Action closures** &mdash; mutate state (`rotation += 90`)
 2. **View bindings** &mdash; `.scaleEffect(scale)` reads the `State<Float>` field (type-checked)
 3. **Animation curve** &mdash; `.animation(AnimationCurve.Spring, scale)` declares which state animates the view and HOW
 4. **Transitions** &mdash; `.transition("slide")` specifies enter/exit behavior

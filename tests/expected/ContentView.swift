@@ -12,10 +12,10 @@ struct ContentView: View {
                 .bold()
             HStack(spacing: 10) {
                 Button("-") {
-                    Task.detached { HaxeBridgeC.invokeAction(457868577) }
+                    Task.detached { HaxeBridgeC.invokeAction(942440246) }
                 }
                 Button("+") {
-                    Task.detached { HaxeBridgeC.invokeAction(1479726225) }
+                    Task.detached { HaxeBridgeC.invokeAction(1594477690) }
                 }
             }
             Spacer()

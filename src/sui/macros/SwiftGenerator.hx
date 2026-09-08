@@ -288,12 +288,6 @@ class SwiftGenerator {
             }
         }
 
-        // Populate the per-pass state-name index used by typed
-        // emitters (Text.bind walker etc.) to decide whether to
-        // prefix `appState.` directly.
-        currentStateNames = new Map();
-        for (sd in stateDecls) currentStateNames.set(sd.name, true);
-
         // 2. Walk constructor for appName, bundleId, state inits
         if (cls.constructor != null) {
             var ctorExpr = cls.constructor.get().expr();
@@ -302,6 +296,14 @@ class SwiftGenerator {
                 else if (n == "bundleIdentifier") bundleId = v;
             });
         }
+
+        // Populate the per-pass state-name index used by typed
+        // emitters (Text.bind walker etc.) to decide whether to
+        // prefix `appState.` directly. After the constructor walk:
+        // the cell field is `count_`, and the constructor is where
+        // it says its name is "count" -- the one Swift knows.
+        currentStateNames = new Map();
+        for (sd in stateDecls) currentStateNames.set(sd.name, true);
 
         // 3. Pre-detect @:expose / @:bridge methods
         for (field in cls.statics.get()) {
@@ -3467,15 +3469,33 @@ class SwiftGenerator {
         switch (e.expr) {
             case TField(_, fa):
                 switch (fa) {
-                    case FInstance(_, _, fieldRef): return fieldRef.get().name;
-                    case FStatic(_, fieldRef): return fieldRef.get().name;
+                    case FInstance(_, _, fieldRef): return stateNameOfField(fieldRef.get().name);
+                    case FStatic(_, fieldRef): return stateNameOfField(fieldRef.get().name);
                     default:
                 }
+            // A read of the `@:state` property types as a call to its
+            // getter: `count` is `get_count()` here.
+            case TCall({expr: TField(_, fa)}, []) if (StringTools.startsWith(faName(fa), "get_")):
+                var n = faName(fa).substr(4);
+                if (currentStateNames.exists(n)) return n;
             default:
                 var fieldName = extractThisField(e);
-                if (fieldName != null) return fieldName;
+                if (fieldName != null) return stateNameOfField(fieldName);
         }
         return null;
+    }
+
+    /** The state name behind a field name. `rui.macros.StateProperty`
+        keeps the cell as `count_` and the property as `count`; Swift
+        knows the state by the name the constructor gave it, which is
+        the property's. Anything else passes through unchanged. **/
+    static function stateNameOfField(name:String):String {
+        if (name == null) return null;
+        if (StringTools.endsWith(name, "_")) {
+            var bare = name.substr(0, name.length - 1);
+            if (currentStateNames.exists(bare)) return bare;
+        }
+        return name;
     }
 
     /** Convert an AnimationCurve enum value to a Swift animation name. **/
@@ -4100,12 +4120,13 @@ class SwiftGenerator {
                 // `appState.` prefix in bridge mode and leaves the
                 // bare name in standalone / component-binding mode.
                 switch (fa) {
-                    case FInstance(_, _, fieldRef): return qualifyStateName(fieldRef.get().name);
-                    case FStatic(_, fieldRef): return qualifyStateName(fieldRef.get().name);
+                    case FInstance(_, _, fieldRef): return qualifyStateName(stateNameOfField(fieldRef.get().name));
+                    case FStatic(_, fieldRef): return qualifyStateName(stateNameOfField(fieldRef.get().name));
                     default:
                 }
             case TCall(callee, callArgs) if (callArgs.length == 0):
-                // `state.value` after typing → `TCall(get_value, [])`.
+                // `state.value` after typing → `TCall(get_value, [])`,
+                // and the `@:state` property `count` → `get_count()`.
                 // Resolve to the underlying State field's qualified
                 // name so `.proportionalFrame(myState.value, ...)`
                 // emits the same Swift as the bare field ref.
@@ -4119,6 +4140,8 @@ class SwiftGenerator {
                         }
                     default:
                 }
+                var propName = resolveStateName(e);
+                if (propName != null) return qualifyStateName(propName);
             default:
                 // TLocal referencing a `@:state` field — same path.
                 var fieldName = extractThisField(e);
@@ -4513,6 +4536,9 @@ class SwiftGenerator {
                         }
                     default:
                 }
+                // The `@:state` property read: `count` is `get_count()`.
+                var propName = resolveStateName(e);
+                if (propName != null) return qualifyStateName(propName);
                 Context.warning('[sui] Text.bind: unsupported call expression — pre-compute in a @:state field instead.', e.pos);
                 return '"<unsupported>"';
             default:

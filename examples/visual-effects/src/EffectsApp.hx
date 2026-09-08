@@ -30,12 +30,12 @@ class EffectsApp extends App {
                 .padding(),
 
             // Text with state-bound visual effects
-            Text.bind(message.value)
+            Text.bind(message)
                 .font(FontStyle.Title)
                 .foregroundColor(ColorValue.Blue)
-                .scaleEffect(scale)
-                .rotationEffect(rotation)
-                .blur(blurAmount)
+                .scaleEffect(scale_)
+                .rotationEffect(rotation_)
+                .blur(blurAmount_)
                 .padding(),
 
             // Controls
@@ -46,10 +46,10 @@ class EffectsApp extends App {
                 ]).padding(),
 
                 new HStack(null, 20, [
-                    new Button("Spin", () -> rotation.value += 45),
-                    new Button("Grow", () -> scale.value += 0.2),
-                    new Button("Shrink", () -> scale.value = Math.max(0.2, scale.value - 0.2)),
-                    new Button("Reset", () -> { rotation.value = 0; scale.value = 1.0; blurAmount.value = 0; })
+                    new Button("Spin", () -> rotation += 45),
+                    new Button("Grow", () -> scale += 0.2),
+                    new Button("Shrink", () -> scale = Math.max(0.2, scale - 0.2)),
+                    new Button("Reset", () -> { rotation = 0; scale = 1.0; blurAmount = 0; })
                 ])
             ]),
 

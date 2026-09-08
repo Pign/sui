@@ -22,12 +22,12 @@ class CounterApp extends App {
 
     override function body():View {
         return new VStack([
-            Text.bind('Count: ${count.value}')
+            Text.bind('Count: $count')
                 .font(FontStyle.Title)
                 .padding(),
             new HStack(null, 20, [
-                new Button("-", () -> count.value--),
-                new Button("+", () -> count.value++)
+                new Button("-", () -> count--),
+                new Button("+", () -> count++)
             ])
         ]);
     }
@@ -47,7 +47,7 @@ class CounterApp extends App {
 ### Displaying State
 
 ```haxe
-Text.bind('Count: ${count.value}')
+Text.bind('Count: $count')
 ```
 
 `Text.bind` accepts any String-typed Haxe expression. sui walks the typed AST and emits `Text("Count: \(count)")` in Swift, so the text updates automatically when the state changes. Use single-quoted Haxe strings so `${...}` interpolation is in effect.
@@ -55,11 +55,11 @@ Text.bind('Count: ${count.value}')
 ### Mutating State
 
 ```haxe
-new Button("-", () -> count.value--)
+new Button("-", () -> count--)
 ```
 
 The button's action is a plain `() -> Void` closure. It runs on the Haxe/C++ side
-(bridged automatically, no `@:expose` needed); assigning to `count.value` pushes the
+(bridged automatically, no `@:expose` needed); assigning to `count` pushes the
 change back to SwiftUI, which re-renders the `Text.bind`.
 
 ### Layout

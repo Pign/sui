@@ -25,11 +25,11 @@ class TestSwiftGen extends App {
             new Text("Hello")
                 .font(FontStyle.LargeTitle)
                 .padding(),
-            Text.bind('Value: ${count.value}')
+            Text.bind('Value: $count')
                 .bold(),
             new HStack(null, 10, [
-                new Button("-", () -> count.value--),
-                new Button("+", () -> count.value++)
+                new Button("-", () -> count--),
+                new Button("+", () -> count++)
             ]),
             new Spacer()
         ]);

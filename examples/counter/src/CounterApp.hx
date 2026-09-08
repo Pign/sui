@@ -15,12 +15,12 @@ class CounterApp extends App {
 
     override function body():View {
         return new VStack([
-            Text.bind('Count: ${count.value}')
+            Text.bind('Count: $count')
                 .font(FontStyle.Title)
                 .padding(),
             new HStack(null, 20, [
-                new Button("-", () -> count.value--),
-                new Button("+", () -> count.value++)
+                new Button("-", () -> count--),
+                new Button("+", () -> count++)
             ])
         ]);
     }

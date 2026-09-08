@@ -35,7 +35,7 @@ class ClosureForEachApp extends App {
             // and `.tag(color)` becomes
             //   .tag(appState.colors[color])
             new Picker("Pick a color", "selected", [
-                new ForEach(colors, color ->
+                new ForEach(colors_, color ->
                     new Text(color).tag(color)
                 )
             ]),

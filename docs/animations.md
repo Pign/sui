@@ -13,14 +13,14 @@ chosen curve, including mutations that come back from Haxe through the bridge. U
 @:state var scale:Float = 1.0;
 
 new Text("Hello")
-    .scaleEffect(scale)
-    .animation(AnimationCurve.Spring, scale)
+    .scaleEffect(scale_)
+    .animation(AnimationCurve.Spring, scale_)
 
 // The action stays a plain closure — no animation wrapper:
-new Button("Bounce", () -> scale.value = scale.value == 1.0 ? 1.3 : 1.0)
+new Button("Bounce", () -> scale = scale == 1.0 ? 1.3 : 1.0)
 ```
 
-When the closure sets `scale.value`, SwiftUI sees the change and animates the
+When the closure sets `scale`, SwiftUI sees the change and animates the
 `scaleEffect` with a spring. This generates:
 
 > The Swift below is what the [decommissioned static path](render-paths.md)
@@ -62,8 +62,8 @@ The `.animation()` modifier tells SwiftUI to animate a view when a `State<Float>
 @:state var scale:Float = 1.0;
 
 new Text("Hello")
-    .scaleEffect(scale)
-    .animation(AnimationCurve.Spring, scale)
+    .scaleEffect(scale_)
+    .animation(AnimationCurve.Spring, scale_)
 ```
 
 When `scale` changes &mdash; whether from a button closure or a value written back from
@@ -88,18 +88,18 @@ new GroupBox("Card", [
     new Text("Animated!")
         .font(FontStyle.Title)
 ])
-.scaleEffect(cardScale)
-.rotationEffect(cardRotation)
-.blur(cardBlur)
-.animation(AnimationCurve.Spring, cardScale)
-.animation(AnimationCurve.EaseInOut, cardRotation)
-.animation(AnimationCurve.EaseOut, cardBlur)
+.scaleEffect(cardScale_)
+.rotationEffect(cardRotation_)
+.blur(cardBlur_)
+.animation(AnimationCurve.Spring, cardScale_)
+.animation(AnimationCurve.EaseInOut, cardRotation_)
+.animation(AnimationCurve.EaseOut, cardBlur_)
 ```
 
 Then mutate the state from a plain closure &mdash; the `.animation` modifiers above make the change animate:
 
 ```haxe
-new Button("Bounce", () -> cardScale.value = cardScale.value == 1.0 ? 1.3 : 1.0)
+new Button("Bounce", () -> cardScale = cardScale == 1.0 ? 1.3 : 1.0)
 ```
 
 ## Transitions
@@ -107,9 +107,9 @@ new Button("Bounce", () -> cardScale.value = cardScale.value == 1.0 ? 1.3 : 1.0)
 The `.transition()` modifier defines how a view enters and exits when used inside a `ConditionalView`. Put an `.animation(curve, showDetail)` on the enclosing container so the enter/exit is animated:
 
 ```haxe
-new Button("Show Detail", () -> showDetail.value = !showDetail.value)
+new Button("Show Detail", () -> showDetail = !showDetail)
 
-new ConditionalView(showDetail,
+new ConditionalView(showDetail_,
     // Slides in from the edge
     new Text("Detail content")
         .padding()
@@ -155,7 +155,7 @@ bound to an `.animation` modifier on the enclosing container:
 new VStack([ /* ConditionalView with .transition()-tagged children */ ])
     .animation(AnimationCurve.Spring, visible);
 
-new Button("Toggle", () -> visible.value = !visible.value)
+new Button("Toggle", () -> visible = !visible)
 ```
 
 Without an `.animation(curve, visible)` on the container, the view appears and disappears instantly.
@@ -181,22 +181,22 @@ class AnimApp extends App {
             // Card whose transforms animate — the curves live here, on the view
             new Text("Hello!")
                 .font(FontStyle.Title)
-                .scaleEffect(scale)
-                .rotationEffect(rotation)
-                .animation(AnimationCurve.Spring, scale)
-                .animation(AnimationCurve.Spring, rotation),
+                .scaleEffect(scale_)
+                .rotationEffect(rotation_)
+                .animation(AnimationCurve.Spring, scale_)
+                .animation(AnimationCurve.Spring, rotation_),
 
             // Buttons are plain closures; the mutations animate because of
             // the .animation modifiers above
             new HStack(null, 15, [
-                new Button("Bounce", () -> scale.value = scale.value == 1.0 ? 1.3 : 1.0),
-                new Button("Spin", () -> rotation.value += 90)
+                new Button("Bounce", () -> scale = scale == 1.0 ? 1.3 : 1.0),
+                new Button("Spin", () -> rotation += 90)
             ]),
 
             // Toggle whose transition is animated by the container's .animation
-            new Button("Toggle Detail", () -> showDetail.value = !showDetail.value),
+            new Button("Toggle Detail", () -> showDetail = !showDetail),
 
-            new ConditionalView(showDetail,
+            new ConditionalView(showDetail_,
                 new Text("Detail!")
                     .padding()
                     .background(ColorValue.Blue)
@@ -205,7 +205,7 @@ class AnimApp extends App {
                     .transition("slide")
             )
         ]).padding()
-            .animation(AnimationCurve.Spring, showDetail);
+            .animation(AnimationCurve.Spring, showDetail_);
     }
 }
 ```

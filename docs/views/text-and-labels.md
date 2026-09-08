@@ -24,21 +24,21 @@ Common modifiers: `.font()`, `.foregroundColor()`, `.bold()`, `.italic()`, `.mul
 Displays dynamic text driven by a typed Haxe expression. The macro inspects the typed AST and emits the matching Swift string-interpolation directly — no template strings, no text rewriter, every reference is type-checked at compile time.
 
 ```haxe
-Text.bind(count.value)                 // State<Int>  → Text("\(appState.count)")
-Text.bind('Count: ${count.value}')     // mixed       → Text("Count: \(appState.count)")
-Text.bind(todos.value[i].title)        // inside ForEach.byIndex  → Text("\(appState.todos[i].title)")
+Text.bind(count)                 // State<Int>  → Text("\(appState.count)")
+Text.bind('Count: ${count}')     // mixed       → Text("Count: \(appState.count)")
+Text.bind(todos[i].title)        // inside ForEach.byIndex  → Text("\(appState.todos[i].title)")
 Text.bind('${rating} / 5')             // component @Binding param → Text("\(rating) / 5")
 ```
 
-**Supported inside the expression**: literals (`Int`/`Float`/`Bool`/`String`), `state.value` reads, array subscripts, string concatenation (`+`), single-quote interpolation (`'foo ${bar}h'`), ternaries (`c ? a : b`), comparisons, and lambda parameters of the enclosing `ForEach`. The macro raises a position-precise warning for any other expression — pre-compute it in a `@:state` field and reference that.
+**Supported inside the expression**: literals (`Int`/`Float`/`Bool`/`String`), `state` reads, array subscripts, string concatenation (`+`), single-quote interpolation (`'foo ${bar}h'`), ternaries (`c ? a : b`), comparisons, and lambda parameters of the enclosing `ForEach`. The macro raises a position-precise warning for any other expression — pre-compute it in a `@:state` field and reference that.
 
 ### Text.withState *(legacy)*
 
 The original stringly template form, kept for backwards compatibility. Prefer `Text.bind` for new code.
 
 ```haxe
-Text.withState("Count: {count}")           // Same as Text.bind('Count: ${count.value}')
-Text.withState("{todos[i].title}")         // Same as Text.bind(todos.value[i].title)
+Text.withState("Count: {count}")           // Same as Text.bind('Count: ${count}')
+Text.withState("{todos[i].title}")         // Same as Text.bind(todos[i].title)
 ```
 
 `withState` references inside the template are pattern-matched at emission time and depend on the `rewriteStateRefsToAppState` text pass to prefix `appState.` — a fragile path that fails silently on patterns it doesn't recognise. The typed `Text.bind` walker has no such failure mode.

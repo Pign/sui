@@ -25,7 +25,7 @@ public static function greet(name:String):String {
 }
 
 // Ordinary Haxe call inside the closure — bridged automatically:
-new Button("Greet", () -> result.value = greet("World"))
+new Button("Greet", () -> result = greet("World"))
 ```
 
 **Generated Swift (with @:expose):** `HaxeBridgeC.greet("World")`

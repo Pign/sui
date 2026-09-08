@@ -78,7 +78,7 @@ class StarRating extends ViewComponent {
         return new HStack([
             new Text(label).font(FontStyle.Headline),
             new Spacer(),
-            Text.bind('${rating} / 5')
+            Text.bind('$rating / 5')
                 .foregroundColor(ColorValue.Orange)
         ]);
     }

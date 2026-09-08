@@ -45,10 +45,10 @@ class FiltersApp extends App {
                 .foregroundColor(ColorValue.White)
                 .cornerRadius(12)
             ])
-            .brightness(brightnessVal)
-            .contrast(contrastVal)
-            .saturation(saturationVal)
-            .grayscale(grayscaleVal)
+            .brightness(brightnessVal_)
+            .contrast(contrastVal_)
+            .saturation(saturationVal_)
+            .grayscale(grayscaleVal_)
             .padding(),
 
             // Controls
@@ -73,10 +73,10 @@ class FiltersApp extends App {
                 ]),
                 new Section("", [
                     new Button("Reset All", () -> {
-                        brightnessVal.value = 0;
-                        contrastVal.value = 1;
-                        saturationVal.value = 1;
-                        grayscaleVal.value = 0;
+                        brightnessVal = 0;
+                        contrastVal = 1;
+                        saturationVal = 1;
+                        grayscaleVal = 0;
                     })
                 ])
             ])

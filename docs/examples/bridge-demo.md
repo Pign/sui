@@ -42,11 +42,11 @@ class BridgeApp extends App {
         return new VStack(null, 20, [
             new Text("Haxe <-> Swift Bridge")
                 .font(FontStyle.LargeTitle),
-            Text.bind(result.value)
+            Text.bind(result)
                 .font(FontStyle.Title2)
                 .padding(),
-            new Button("Greet from Haxe", () -> result.value = greet("World")),
-            new Button("Fibonacci(20)", () -> result.value = 'fib(20) = ${fibonacci(20)}'),
+            new Button("Greet from Haxe", () -> result = greet("World")),
+            new Button("Fibonacci(20)", () -> result = 'fib(20) = ${fibonacci(20)}'),
         ]);
     }
 }
@@ -73,11 +73,11 @@ any custom Swift code as `HaxeBridgeC.greet()`.
 Call the function inside the closure and assign its result to the state variable:
 
 ```haxe
-new Button("Greet from Haxe", () -> result.value = greet("World"))
+new Button("Greet from Haxe", () -> result = greet("World"))
 ```
 
 The closure runs on a detached thread, so even a blocking computation keeps the UI
-responsive. SwiftUI re-renders the `Text.bind(result.value)` when the assignment lands.
+responsive. SwiftUI re-renders the `Text.bind(result)` when the assignment lands.
 
 ### Multiple Bridge Functions
 
@@ -88,7 +88,7 @@ public static function fibonacci(n:Int):Int {
     return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-new Button("Fibonacci(20)", () -> result.value = 'fib(20) = ${fibonacci(20)}')
+new Button("Fibonacci(20)", () -> result = 'fib(20) = ${fibonacci(20)}')
 ```
 
 Any number of functions can be called this way. Add `@:expose` to any of them you also
