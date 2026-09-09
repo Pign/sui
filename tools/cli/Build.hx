@@ -1091,6 +1091,23 @@ class Build {
         // Also check the sui library source
         var libSrc = getLibPath() + "/src";
         if (FileSystem.exists(libSrc)) newestSource = Math.max(newestSource, newestModTime(libSrc, ".hx"));
+        // And every class path the build file names, and every library it
+        // takes. `src` is a convention, not the rule: a project whose
+        // application lives in `demo/owned` (a -cp) was reported "Haxe
+        // unchanged" after an edit there, and the stale hxcpp header failed
+        // the bridge with a message about a constructor that no longer
+        // existed. A build tool that skips work must know everything the
+        // compiler would read.
+        if (buildFile != null && FileSystem.exists('$cwd/$buildFile')) {
+            for (dir in classPathsOf('$cwd/$buildFile', cwd))
+                if (FileSystem.exists(dir) && FileSystem.isDirectory(dir))
+                    newestSource = Math.max(newestSource, newestModTime(dir, ".hx"));
+            for (lib in librariesOf('$cwd/$buildFile')) {
+                var path = libPathOf(lib);
+                if (path != null && FileSystem.exists(path))
+                    newestSource = Math.max(newestSource, newestModTime(path, ".hx"));
+            }
+        }
         // The build file that will actually be compiled -- which may be
         // `build-sui.hxml`. Statting `build.hxml` unconditionally meant editing
         // the one this project uses did not trigger a rebuild.
@@ -1125,6 +1142,56 @@ class Build {
     }
 
     /** Get the newest modification time of files with given extension in a directory (recursive). **/
+    /** The `-cp` / `--class-path` entries of a build file, resolved against
+        the project directory. **/
+    static function classPathsOf(buildFile:String, cwd:String):Array<String> {
+        var out:Array<String> = [];
+        for (line in File.getContent(buildFile).split("\n")) {
+            var t = StringTools.trim(line);
+            var arg:Null<String> = null;
+            if (StringTools.startsWith(t, "-cp ")) arg = t.substr(4);
+            else if (StringTools.startsWith(t, "--class-path ")) arg = t.substr(13);
+            if (arg == null) continue;
+            arg = StringTools.trim(arg);
+            if (arg == "") continue;
+            out.push(haxe.io.Path.isAbsolute(arg) ? arg : haxe.io.Path.join([cwd, arg]));
+        }
+        return out;
+    }
+
+    /** The `-lib` / `--library` entries of a build file, sui excluded (its
+        source is checked separately). **/
+    static function librariesOf(buildFile:String):Array<String> {
+        var out:Array<String> = [];
+        for (line in File.getContent(buildFile).split("\n")) {
+            var t = StringTools.trim(line);
+            var arg:Null<String> = null;
+            if (StringTools.startsWith(t, "-lib ")) arg = t.substr(5);
+            else if (StringTools.startsWith(t, "--library ")) arg = t.substr(10);
+            if (arg == null) continue;
+            arg = StringTools.trim(arg).split(":")[0];
+            if (arg != "" && arg != "sui") out.push(arg);
+        }
+        return out;
+    }
+
+    static var libPaths = new Map<String, Null<String>>();
+
+    /** Where haxelib says a library's source is; `null` when it does not
+        know. One process per library, remembered. **/
+    static function libPathOf(lib:String):Null<String> {
+        if (libPaths.exists(lib)) return libPaths.get(lib);
+        var path:Null<String> = null;
+        try {
+            var p = new sys.io.Process("haxelib", ["libpath", lib]);
+            var out = StringTools.trim(p.stdout.readAll().toString());
+            if (p.exitCode() == 0 && out != "") path = out;
+            p.close();
+        } catch (_:Dynamic) {}
+        libPaths.set(lib, path);
+        return path;
+    }
+
     static function newestModTime(dir:String, ext:String):Float {
         var newest:Float = 0;
         if (!FileSystem.exists(dir)) return 0;
